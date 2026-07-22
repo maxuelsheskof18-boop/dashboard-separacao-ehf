@@ -2842,3 +2842,103 @@ body:not(.v8-sidebar-collapsed) .v8-menu button .v110-menu-ping{
 
 /* VESCO V10.22 — retirada por código R/D */
 .v8-chip.orange{background:#fff7ed!important;color:#c2410c!important}
+
+
+/* ===== EHF v4.2.20 - VISUAL DO PAINEL DE ALARMES FORCADO ===== */
+html body #control-panel .cp-group-title,
+html body .cp-group-title{
+  display:flex!important;align-items:center!important;gap:8px!important;
+  margin:18px 0 10px 0!important;padding-left:10px!important;
+  border-left:3px solid #ff8a00!important;color:#ff9b22!important;
+  font-size:12px!important;font-weight:900!important;letter-spacing:.55px!important;
+  text-transform:uppercase!important;
+}
+html body #control-panel .cp-store-list,
+html body .cp-store-list{list-style:none!important;margin:0 0 10px 0!important;padding:0!important;display:block!important;}
+html body #control-panel .cp-store-item,
+html body .cp-store-item{
+  display:grid!important;grid-template-columns:170px minmax(0,1fr)!important;
+  align-items:center!important;gap:16px!important;min-height:58px!important;
+  padding:12px 14px!important;margin:0 0 8px 0!important;
+  border-radius:12px!important;background:rgba(15,23,42,.82)!important;
+  border:1px solid rgba(148,163,184,.16)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035)!important;
+  transition:opacity .18s ease,background .18s ease,border-color .18s ease!important;
+}
+html body #control-panel .cp-store-item.remessa-row,
+html body .cp-store-item.remessa-row{border-left:3px solid rgba(255,138,0,.82)!important;}
+html body #control-panel .cp-store-item .store-name,
+html body .cp-store-item .store-name{
+  width:auto!important;border:0!important;padding:0!important;margin:0!important;
+  color:#fff!important;font-size:12px!important;font-weight:950!important;line-height:1.1!important;
+  text-transform:uppercase!important;letter-spacing:-.1px!important;
+}
+html body #control-panel .remessa-badge,
+html body .remessa-badge{
+  display:inline-flex!important;margin:6px 0 0 0!important;width:max-content!important;
+  padding:3px 7px!important;border-radius:999px!important;
+  color:#ff9b22!important;background:rgba(255,138,0,.10)!important;
+  border:1px solid rgba(255,138,0,.26)!important;font-size:9px!important;font-weight:950!important;
+}
+html body #control-panel .cp-store-controls,
+html body .cp-store-controls{
+  display:flex!important;align-items:center!important;justify-content:flex-start!important;
+  gap:12px!important;flex-wrap:wrap!important;width:100%!important;min-width:0!important;
+}
+html body #control-panel .cp-time-block.only-alarm,
+html body .cp-time-block.only-alarm{
+  display:inline-flex!important;flex-direction:column!important;align-items:flex-start!important;
+  gap:4px!important;min-width:78px!important;width:auto!important;margin:0!important;
+}
+html body #control-panel .cp-time-block.only-alarm small,
+html body .cp-time-block.only-alarm small{
+  color:#ffb454!important;font-size:8px!important;line-height:1!important;
+  font-weight:950!important;text-transform:uppercase!important;letter-spacing:.42px!important;
+}
+html body #control-panel .cp-time-block.only-alarm input,
+html body .cp-time-block.only-alarm input{
+  width:86px!important;height:34px!important;padding:6px 8px!important;
+  background:#060b12!important;color:#fff!important;border:1px solid rgba(255,138,0,.86)!important;
+  border-radius:7px!important;outline:none!important;font-size:12px!important;font-weight:900!important;
+  box-shadow:0 0 0 1px rgba(255,138,0,.10), inset 0 1px 0 rgba(255,255,255,.04)!important;
+}
+html body #control-panel .cp-time-block.only-alarm input:focus,
+html body .cp-time-block.only-alarm input:focus{box-shadow:0 0 0 3px rgba(255,138,0,.18)!important;border-color:#ff9b22!important;}
+html body #control-panel .cp-time-block.only-alarm input.input-invalid,
+html body .cp-time-block.only-alarm input.input-invalid{border-color:#ef4444!important;box-shadow:0 0 0 3px rgba(239,68,68,.18)!important;color:#fecaca!important;}
+html body #control-panel .cp-auto-alarm-btn,
+html body .cp-auto-alarm-btn{
+  height:30px!important;padding:0 10px!important;border:1px solid rgba(255,138,0,.66)!important;
+  background:rgba(255,138,0,.075)!important;color:#ffb454!important;border-radius:7px!important;
+  font-size:9px!important;font-weight:950!important;cursor:pointer!important;white-space:nowrap!important;
+}
+html body #control-panel .cp-auto-alarm-btn:hover,
+html body .cp-auto-alarm-btn:hover{background:rgba(255,138,0,.16)!important;}
+html body #control-panel .cp-auto-alarm-btn:disabled,
+html body .cp-auto-alarm-btn:disabled{opacity:.42!important;cursor:not-allowed!important;}
+html body #control-panel .cp-store-controls label,
+html body .cp-store-controls label{
+  display:inline-flex!important;align-items:center!important;gap:5px!important;
+  color:#e5edf8!important;font-size:11px!important;font-weight:750!important;white-space:nowrap!important;
+  margin:0!important;
+}
+html body #control-panel .cp-store-controls label:last-child,
+html body .cp-store-controls label:last-child{color:#69d991!important;}
+html body #control-panel .cp-store-controls input[type="checkbox"],
+html body .cp-store-controls input[type="checkbox"]{
+  width:15px!important;height:15px!important;margin:0!important;padding:0!important;accent-color:#ff8a00!important;
+}
+html body #control-panel .cp-time-placeholder,
+html body .cp-time-placeholder{display:inline-block!important;width:86px!important;min-width:86px!important;}
+html body #control-panel .cp-alarm-meta,
+html body .cp-alarm-meta{display:none!important;}
+html body #ehf-visual-version-badge{
+  position:fixed!important;right:8px!important;bottom:6px!important;z-index:999999!important;
+  opacity:.45!important;color:#94a3b8!important;background:rgba(2,6,23,.75)!important;border:1px solid rgba(148,163,184,.16)!important;
+  border-radius:999px!important;padding:3px 7px!important;font-size:9px!important;font-weight:800!important;pointer-events:none!important;
+}
+@media (max-width: 980px){
+  html body #control-panel .cp-store-item, html body .cp-store-item{grid-template-columns:1fr!important;gap:10px!important;}
+  html body #control-panel .cp-store-controls, html body .cp-store-controls{gap:10px!important;}
+}
+
