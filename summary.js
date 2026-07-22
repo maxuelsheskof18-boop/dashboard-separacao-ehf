@@ -38,47 +38,17 @@ async function proxyToWebApp(queryStr) {
   return resp;
 }
 
-function normalizeSummaryResponse(original) {
-  const mapped = original.mapped || original || {};
-  const ts = original.ts || mapped.ts || new Date().toISOString();
+function normalizeFormasEnvioResponse(original) {
+  const formasEnvio =
+    original.formasEnvio ||
+    original.raw?.formasEnvio ||
+    original.data?.formasEnvio ||
+    {};
 
   return {
     ok: true,
-    ts,
-    aguardando: Number(
-      mapped.aguardando_total ??
-      original.aguardando ??
-      0
-    ),
-    emSeparacao: Number(
-      mapped.em_separao_total ??
-      mapped.em_separacao_total ??
-      original.emSeparacao ??
-      0
-    ),
-    separadas: Number(
-      mapped.separadas_total ??
-      original.separadas ??
-      0
-    ),
-    embaladas: Number(
-      mapped.embaladas_total ??
-      original.embaladas ??
-      0
-    ),
-    embaladosNaUltimaHora: Number(
-      mapped.embalados_ultima_hora ??
-      original.embaladosNaUltimaHora ??
-      0
-    ),
-    overall: {
-      totalItens: Number(
-        mapped.grand_total ??
-        original.total ??
-        0
-      )
-    },
-    perStore: original.perStore || original.raw?.perStore || {},
+    ts: original.ts || new Date().toISOString(),
+    formasEnvio,
     raw: original
   };
 }
@@ -101,7 +71,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const prox = await proxyToWebApp('action=summary');
+    const prox = await proxyToWebApp('action=formasEnvio');
 
     if (!prox.json) {
       return res.status(prox.status || 500).json({
@@ -111,14 +81,14 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    const normalized = normalizeSummaryResponse(prox.json);
+    const normalized = normalizeFormasEnvioResponse(prox.json);
 
     return res.status(200).json(normalized);
 
   } catch (error) {
     return res.status(500).json({
       ok: false,
-      error: 'Erro ao buscar summary',
+      error: 'Erro ao buscar formas de envio',
       detail: String(error && error.message ? error.message : error)
     });
   }
