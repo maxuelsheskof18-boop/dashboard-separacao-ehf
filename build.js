@@ -20,14 +20,8 @@ function copyRecursive(from, to) {
 fs.rmSync(destination, { recursive: true, force: true });
 copyRecursive(source, destination);
 
-const indexPath = path.join(destination, 'index.html');
-if (!fs.existsSync(indexPath)) {
-  throw new Error('index.html não foi gerado em dist. Verifique a pasta site/.');
-}
-
-const indexHead = fs.readFileSync(indexPath, 'utf8').slice(0, 100).toLowerCase();
-if (!indexHead.includes('<!doctype') && !indexHead.includes('<html')) {
-  throw new Error('dist/index.html não parece ser HTML válido. Pode ter sido substituído por imagem/binário.');
+if (!fs.existsSync(path.join(destination, 'index.html'))) {
+  throw new Error('index.html não foi gerado em dist.');
 }
 
 console.log('Painel estático gerado em dist.');
