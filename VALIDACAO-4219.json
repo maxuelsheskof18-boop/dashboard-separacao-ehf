@@ -1,0 +1,74 @@
+{
+  "index.html": {
+    "exists": true,
+    "4219": true,
+    "Auto -1h": false,
+    "alarmManual": false,
+    "tiny-worker": true,
+    "normalizaStatus3": true
+  },
+  "site/index.html": {
+    "exists": true,
+    "4219": true,
+    "Auto -1h": false,
+    "alarmManual": false,
+    "tiny-worker": true,
+    "normalizaStatus3": true
+  },
+  "dist/index.html": {
+    "exists": true,
+    "4219": true,
+    "Auto -1h": false,
+    "alarmManual": false,
+    "tiny-worker": true,
+    "normalizaStatus3": true
+  },
+  "modules/painel-runtime.js": {
+    "exists": true,
+    "4219": false,
+    "Auto -1h": true,
+    "alarmManual": true,
+    "tiny-worker": false,
+    "normalizaStatus3": false
+  },
+  "site/modules/painel-runtime.js": {
+    "exists": true,
+    "4219": false,
+    "Auto -1h": true,
+    "alarmManual": true,
+    "tiny-worker": false,
+    "normalizaStatus3": false
+  },
+  "dist/modules/painel-runtime.js": {
+    "exists": true,
+    "4219": false,
+    "Auto -1h": true,
+    "alarmManual": true,
+    "tiny-worker": false,
+    "normalizaStatus3": false
+  },
+  "modules/embalagem.js": {
+    "exists": true,
+    "4219": false,
+    "Auto -1h": false,
+    "alarmManual": false,
+    "tiny-worker": true,
+    "normalizaStatus3": false
+  },
+  "site/modules/embalagem.js": {
+    "exists": true,
+    "4219": false,
+    "Auto -1h": false,
+    "alarmManual": false,
+    "tiny-worker": true,
+    "normalizaStatus3": false
+  },
+  "dist/modules/embalagem.js": {
+    "exists": true,
+    "4219": false,
+    "Auto -1h": false,
+    "alarmManual": false,
+    "tiny-worker": true,
+    "normalizaStatus3": false
+  }
+}
