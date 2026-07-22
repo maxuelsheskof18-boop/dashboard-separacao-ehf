@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="vesco-version" content="4.2.1-PAINEL-PRODUCAO-FLUTUANTE-RESTAURADO">
+  <title>Administração — EHF Operação</title>
+
+  <style>
+    :root { --bg:#050505; --panel:#0f0f0f; --card:#151515; --line:rgba(255,255,255,.08); --muted:#9a9a9a; --accent:#ff8a00; --text:#fff; --success:#5bae5f; --danger:#ef4444; --warning:#facc15; }
+    *{box-sizing:border-box} html,body{margin:0;min-height:100%;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);color:var(--text)} body{padding:0}.hidden{display:none!important}
+    .login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center}.login-box{width:100%;max-width:420px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;box-shadow:0 12px 40px rgba(0,0,0,.55)}.login-box h1{margin:0 0 8px;font-size:22px}.login-box p{margin:0 0 18px;color:var(--muted);font-size:13px;line-height:1.4}
+    input,select,textarea{width:100%;background:#080808;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:10px;font-size:13px;outline:none} input[type=checkbox]{width:18px;height:18px;margin:0;accent-color:var(--accent)} input[type=time]{max-width:130px} input[type=number]{max-width:70px;padding:8px}
+    button{border:0;border-radius:8px;padding:10px 14px;cursor:pointer;font-weight:700;font-size:13px}.btn-primary{background:var(--accent);color:#000}.btn-secondary{background:#222;color:#fff;border:1px solid var(--line)}.btn-danger{background:rgba(239,68,68,.15);color:#fecaca;border:1px solid rgba(239,68,68,.35)}.btn-success{background:rgba(91,174,95,.16);color:#bbf7d0;border:1px solid rgba(91,174,95,.35)}
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px;border-bottom:1px solid var(--line);padding-bottom:14px}.topbar h1{margin:0;font-size:20px}.topbar .accent{color:var(--accent)}.top-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.admin-grid{display:grid;grid-template-columns:1fr;gap:16px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}.panel h2{margin:0 0 6px;font-size:17px}.panel-desc{color:var(--muted);font-size:12px;margin-bottom:14px;line-height:1.4}
+    .row{display:grid;grid-template-columns:34px 1.2fr 130px 90px 110px 100px;gap:8px;align-items:center;background:#0b0b0b;border:1px solid rgba(255,255,255,.04);border-radius:10px;padding:10px;margin-bottom:8px}.row-header{color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;background:transparent;border:0;padding:0 10px 6px}.ordem{width:26px;height:26px;border-radius:999px;display:flex;align-items:center;justify-content:center;background:rgba(255,138,0,.12);color:var(--accent);font-weight:800;font-size:12px}
+    .routine-item{background:#0b0b0b;border:1px solid rgba(255,255,255,.04);border-radius:12px;padding:12px;margin-bottom:10px}.routine-head{display:grid;grid-template-columns:110px 1fr 170px;gap:10px;align-items:center;margin-bottom:10px}.routine-title input{font-weight:800}.routine-channels{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.channel-check{display:inline-flex;align-items:center;gap:6px;background:#111;border:1px solid rgba(255,255,255,.06);padding:7px 9px;border-radius:999px;font-size:12px;color:#ddd}.seq-card{display:grid;grid-template-columns:26px 1fr 70px;gap:7px;align-items:center;background:#111;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:8px;margin:6px 0}.seq-card span{font-size:12px;font-weight:700}.textarea-label{font-size:12px;color:var(--muted);margin:8px 0 5px} textarea{min-height:70px;resize:vertical}.footer-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.toast{position:fixed;right:16px;bottom:16px;max-width:360px;background:#111;border:1px solid rgba(255,138,0,.45);color:#fff;padding:12px 14px;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.55);display:none;z-index:9999;font-size:13px}.small-muted{color:var(--muted);font-size:11px;line-height:1.4}.done-time{font-size:11px;color:#bbb;margin-top:4px}
+    @media(max-width:900px){.row,.row-header,.routine-head{grid-template-columns:1fr}.row-header{display:none}input[type=time]{max-width:none}.topbar{align-items:flex-start;flex-direction:column}.top-actions{justify-content:flex-start}}@media(min-width:1200px){.admin-grid{grid-template-columns:1.05fr .95fr}}
+  </style>
+
+<style id="ehf-admin-shell">
+:root{--shell-sidebar:220px}
+#admin-app{margin-left:var(--shell-sidebar);min-height:100vh;padding:20px 24px;background:radial-gradient(circle at top left,rgba(255,138,0,.07),transparent 30%),#07090d}
+.admin-sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--shell-sidebar);background:linear-gradient(180deg,#111720,#090c11);border-right:1px solid rgba(255,255,255,.08);z-index:100;display:flex;flex-direction:column}
+.admin-brand{height:76px;padding:0 18px;display:flex;align-items:center;border-bottom:1px solid rgba(255,255,255,.06)}.admin-brand img{width:120px;height:auto}
+.admin-nav-label{padding:18px 18px 8px;color:#818898;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1px}.admin-nav{display:grid;gap:6px;padding:0 12px}.admin-nav a{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:8px;color:#dbe0e8;text-decoration:none;font-size:12px;font-weight:800;border:1px solid transparent}.admin-nav a:hover,.admin-nav a.active{background:linear-gradient(90deg,rgba(255,138,0,.22),rgba(255,138,0,.07));border-color:rgba(255,138,0,.18);color:#fff}.admin-nav i{color:#ff8a00;font-style:normal;width:18px;text-align:center}.admin-side-footer{margin-top:auto;padding:16px 18px;border-top:1px solid rgba(255,255,255,.06);font-size:10px;color:#8c94a3;line-height:1.5}.admin-side-footer b{display:block;color:#8ee7a7;margin-bottom:4px}
+#admin-app .topbar{position:sticky;top:0;z-index:10;background:rgba(7,9,13,.93);backdrop-filter:blur(12px);margin:-20px -24px 18px;padding:14px 24px}
+.login-screen{padding:18px}
+@media(max-width:820px){:root{--shell-sidebar:0px}.admin-sidebar{position:static;width:100%;height:auto}.admin-brand{height:62px}.admin-nav-label,.admin-side-footer{display:none}.admin-nav{display:flex;overflow:auto;padding:8px 10px 12px}.admin-nav a{white-space:nowrap}#admin-app{margin-left:0;padding:14px}.login-screen{padding:14px}}
+</style>
+</head>
+<body>
+  <div id="login-screen" class="login-screen">
+    <div class="login-box">
+      <h1>Admin EHF</h1>
+      <p>Área restrita para configurar o painel de produção e a rotina de envio para separação.</p>
+      <label>Senha admin</label>
+      <input id="admin-password" type="password" placeholder="Digite a senha" />
+      <div style="margin-top:12px;display:flex;gap:8px;">
+        <button class="btn-primary" id="btn-login">Entrar</button>
+        <a href="index.html" style="text-decoration:none;"><button type="button" class="btn-secondary">Voltar ao painel</button></a>
+      </div>
+      <p class="small-muted" style="margin-top:14px;">Segurança simples para operação interna. Depois podemos evoluir para Firebase Auth.</p>
+    </div>
+  </div>
+
+  <div id="admin-app" class="hidden">
+    <aside class="admin-sidebar">
+      <div class="admin-brand"><img src="assets/ehf-logo.svg" alt="EHF Logística"></div>
+      <div class="admin-nav-label">Navegação</div>
+      <nav class="admin-nav">
+        <a href="index.html#painel"><i>▦</i>Painel</a>
+        <a href="atrasados.html"><i>◉</i>Pedidos atrasados</a>
+        <a href="index.html#bipagem"><i>⌁</i>Bipagem</a>
+        <a href="embalagem.html"><i>▣</i>Embalagem</a>
+        <a class="active" href="admin.html"><i>⚙</i>Administração</a>
+      </nav>
+      <div class="admin-side-footer"><b>Firebase conectado</b>Configurações por data operacional</div>
+    </aside>
+
+    <header class="topbar">
+      <div><h1>Administração — <span class="accent">Operação EHF</span></h1><div class="small-muted" id="last-admin-sync">Carregando configurações...</div></div>
+      <div class="top-actions">
+        <a href="index.html" style="text-decoration:none;"><button class="btn-secondary">Abrir painel</button></a>
+        <button class="btn-secondary" id="btn-reload">Recarregar</button>
+        <button class="btn-danger" id="btn-reset-dia">Resetar dia</button>
+        <button class="btn-primary" id="btn-save-all">Salvar tudo</button>
+      </div>
+    </header>
+
+    <main class="admin-grid">
+      <section class="panel">
+        <h2>Painel de Produção</h2>
+        <div class="panel-desc">Defina ordem, horário, ativação e status. O painel principal usa essas configurações nos alertas e na rotina operacional, sem criar janelas flutuantes sobre a tela.</div>
+        <div class="row row-header"><div>#</div><div>Processo</div><div>Horário</div><div>Ativo</div><div>Status</div><div>Ações</div></div>
+        <div id="producao-list"></div>
+        <div class="footer-actions"><button class="btn-primary" id="btn-save-producao">Salvar produção</button><button class="btn-secondary" id="btn-init-producao">Inicializar padrão</button></div>
+      </section>
+
+      <section class="panel">
+        <h2>Controle de Envio para Separação</h2>
+        <div class="panel-desc">Esta rotina alimenta os alertas do painel principal. Ao concluir uma etapa, o horário é registrado e todos os computadores conectados recebem a atualização.</div>
+        <div id="rotina-list"></div>
+        <div class="footer-actions"><button class="btn-primary" id="btn-save-rotina">Salvar rotina</button><button class="btn-secondary" id="btn-init-rotina">Inicializar rotina padrão</button></div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    const ADMIN_PASSWORD = localStorage.getItem("ehf_admin_password_override") || "1234";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCcO-kwO-vIFs8x0zchjlyc1bsOxCLnhgs",
+      authDomain: "painel-expedicao-a23c6.firebaseapp.com",
+      databaseURL: "https://painel-expedicao-a23c6-default-rtdb.firebaseio.com",
+      projectId: "painel-expedicao-a23c6",
+      storageBucket: "painel-expedicao-a23c6.firebasestorage.app",
+      messagingSenderId: "1095017505982",
+      appId: "1:1095017505982:web:8cdebef7aea45b21622aef"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    /* ========== CALENDÁRIO / DATA OPERACIONAL ========== */
+    function getBrasiliaDateKey(date = new Date()) {
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric', month: '2-digit', day: '2-digit'
+      }).formatToParts(date);
+      const obj = {};
+      parts.forEach(p => { obj[p.type] = p.value; });
+      return `${obj.year}-${obj.month}-${obj.day}`;
+    }
+
+    function getDataOperacionalSelecionada() {
+      return localStorage.getItem('ehf_data_operacional') || getBrasiliaDateKey();
+    }
+
+    let DATA_OPERACIONAL = getDataOperacionalSelecionada();
+    function diaPath(subpath) {
+      return `expedicao/dias/${DATA_OPERACIONAL}/${subpath}`;
+    }
+
+    function criarControleCalendarioAdmin() {
+      if (document.getElementById('controle-calendario-admin')) return;
+      const topActions = document.querySelector('.top-actions') || document.querySelector('.topbar') || document.body;
+      const box = document.createElement('div');
+      box.id = 'controle-calendario-admin';
+      box.innerHTML = `
+        <span>Data</span>
+        <input id="admin-data-operacional" type="date" value="${DATA_OPERACIONAL}" />
+        <button id="admin-data-hoje" type="button">Hoje</button>
+      `;
+      const style = document.createElement('style');
+      style.innerHTML = `
+        #controle-calendario-admin{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:6px 8px;font-size:11px;color:#aaa}
+        #controle-calendario-admin input{background:#080808;color:#fff;border:1px solid rgba(255,255,255,.12);border-radius:7px;padding:6px;font-size:12px;max-width:140px}
+        #controle-calendario-admin button{background:#222;color:#ff8a00;border:1px solid rgba(255,138,0,.35);border-radius:7px;padding:6px 9px;font-size:11px;font-weight:800;cursor:pointer}
+      `;
+      document.head.appendChild(style);
+      topActions.prepend(box);
+      document.getElementById('admin-data-operacional').addEventListener('change', e => {
+        localStorage.setItem('ehf_data_operacional', e.target.value);
+        location.reload();
+      });
+      document.getElementById('admin-data-hoje').addEventListener('click', () => {
+        localStorage.removeItem('ehf_data_operacional');
+        location.reload();
+      });
+    }
+    document.addEventListener('DOMContentLoaded', criarControleCalendarioAdmin);
+
+    const producaoRef = ref(db, diaPath("admin/producao"));
+    const rotinaRef = ref(db, diaPath("admin/rotina_separacao"));
+    const alertaBroadcastRef = ref(db, "expedicao/ultimo_alerta");
+
+    const canais = ["MAGALU", "SPX", "FLEX", "MELHOR ENVIO", "TIKTOK", "AMAZON", "MERCADO ENVIO", "SHOPEE"];
+
+    const producaoPadrao = [
+      { id: "magalu", nome: "MAGALU", horario: "07:00", ativo: true, finalizado: false },
+      { id: "spx", nome: "SPX", horario: "11:00", ativo: true, finalizado: false },
+      { id: "flex", nome: "FLEX", horario: "13:30", ativo: true, finalizado: false },
+      { id: "melhor_envio", nome: "MELHOR ENVIO", horario: "12:00", ativo: true, finalizado: false },
+      { id: "tiktok", nome: "TIKTOK", horario: "12:00", ativo: true, finalizado: false },
+      { id: "amazon", nome: "AMAZON", horario: "11:00", ativo: true, finalizado: false },
+      { id: "mercado_envio", nome: "MERCADO ENVIO", horario: "13:30", ativo: true, finalizado: false },
+      { id: "shopee", nome: "SHOPEE", horario: "13:00", ativo: true, finalizado: false }
+    ];
+
+    const rotinaPadrao = [
+      { id: "rotina_0700", horario: "07:00", titulo: "Enviar todos para separação", descricao: "Envio geral do início do dia para separação. Conferir se todos os canais estão liberados para começar a operação.", canais: [...canais], sequenciaRemessa: [...canais], concluido: false, concluidoEm: "" },
+      { id: "rotina_1100", horario: "11:00", titulo: "Enviar SPX entrega rápida e Amazon, revisar Magalu", descricao: "Priorizar SPX entrega rápida e Amazon. Revisar Magalu para garantir que nada ficou parado.", canais: ["SPX", "AMAZON", "MAGALU"], sequenciaRemessa: ["SPX", "AMAZON", "MAGALU"], concluido: false, concluidoEm: "" },
+      { id: "rotina_1200", horario: "12:00", titulo: "Enviar TikTok e Melhor Envio, revisar Mercado Livre", descricao: "Enviar TikTok e Melhor Envio para separação. Revisar Mercado Livre, verificar horário correto de despacho e, se houver pendência, enviar para separação.", canais: ["TIKTOK", "MELHOR ENVIO", "MERCADO ENVIO"], sequenciaRemessa: ["TIKTOK", "MELHOR ENVIO", "MERCADO ENVIO"], concluido: false, concluidoEm: "" },
+      { id: "rotina_1300", horario: "13:00", titulo: "Enviar Shopee coleta para separação", descricao: "Enviar Shopee coleta para separação. Se o Mercado Livre estiver com horário de corte para 16h, existe a opção de enviar Mercado Livre para separação também.", canais: ["SHOPEE", "MERCADO ENVIO"], sequenciaRemessa: ["SHOPEE", "MERCADO ENVIO"], concluido: false, concluidoEm: "" },
+      { id: "rotina_1330", horario: "13:30", titulo: "Enviar Mercado Livre e revisar Shopee", descricao: "Enviar Mercado Livre para separação e revisar se ficou algo para trás da Shopee.", canais: ["MERCADO ENVIO", "SHOPEE"], sequenciaRemessa: ["MERCADO ENVIO", "SHOPEE"], concluido: false, concluidoEm: "" }
+    ];
+
+    let producaoAtual = structuredClone(producaoPadrao);
+    let rotinaAtual = structuredClone(rotinaPadrao);
+
+    document.getElementById("btn-login").addEventListener("click", validarLogin);
+    document.getElementById("admin-password").addEventListener("keydown", e => { if (e.key === "Enter") validarLogin(); });
+
+    function validarLogin() {
+      const senha = document.getElementById("admin-password").value.trim();
+      if (senha !== ADMIN_PASSWORD) return toast("Senha incorreta.");
+      localStorage.setItem("ehf_admin_ok", "1");
+      abrirAdmin();
+    }
+
+    function abrirAdmin() {
+      document.getElementById("login-screen").classList.add("hidden");
+      document.getElementById("admin-app").classList.remove("hidden");
+      carregarTudo();
+    }
+
+    if (localStorage.getItem("ehf_admin_ok") === "1") abrirAdmin();
+
+    function nowBrasiliaString() { return new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }); }
+    function toast(msg) { const el=document.getElementById("toast"); el.textContent=msg; el.style.display="block"; setTimeout(()=>el.style.display="none",3500); }
+    function slugify(txt) { return String(txt||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,""); }
+
+    async function carregarTudo() {
+      try {
+        const snapProd = await get(producaoRef);
+        const snapRotina = await get(rotinaRef);
+        producaoAtual = snapProd.exists() && snapProd.val().sequencia ? snapProd.val().sequencia : structuredClone(producaoPadrao);
+        rotinaAtual = snapRotina.exists() && snapRotina.val().itens ? snapRotina.val().itens : structuredClone(rotinaPadrao);
+        renderProducao(); renderRotina();
+        document.getElementById("last-admin-sync").textContent = "Última leitura: " + nowBrasiliaString();
+      } catch(e) { console.error(e); toast("Erro ao carregar configurações."); }
+    }
+
+    function renderProducao() {
+      const container = document.getElementById("producao-list"); container.innerHTML = "";
+      producaoAtual.forEach((item,index)=>{
+        const row=document.createElement("div"); row.className="row"; row.dataset.index=index;
+        row.innerHTML=`
+          <div class="ordem">${index+1}</div>
+          <div><input type="text" class="prod-nome" value="${escapeAttr(item.nome)}" /></div>
+          <div><input type="time" class="prod-horario" value="${item.horario||""}" /></div>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" class="prod-ativo" ${item.ativo?"checked":""}/> Ativo</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" class="prod-finalizado" ${item.finalizado?"checked":""}/> Finalizado</label>
+          <div style="display:flex;gap:6px;"><button type="button" class="btn-secondary btn-up">Subir</button><button type="button" class="btn-secondary btn-down">Descer</button></div>`;
+        container.appendChild(row);
+      });
+      container.querySelectorAll(".btn-up").forEach(btn=>btn.addEventListener("click",()=>moverProducao(Number(btn.closest(".row").dataset.index),-1)));
+      container.querySelectorAll(".btn-down").forEach(btn=>btn.addEventListener("click",()=>moverProducao(Number(btn.closest(".row").dataset.index),1)));
+    }
+
+    function renderRotina() {
+      const container = document.getElementById("rotina-list"); container.innerHTML = "";
+      rotinaAtual.forEach((item,index)=>{
+        const div=document.createElement("div"); div.className="routine-item"; div.dataset.index=index;
+        const canaisHtml = canais.map(canal => `<label class="channel-check"><input type="checkbox" class="rot-canal" value="${canal}" ${(item.canais||[]).includes(canal)?"checked":""}/> ${canal}</label>`).join("");
+        const seqSet = new Set(Array.isArray(item.sequenciaRemessa) ? item.sequenciaRemessa : []);
+        const seqHtml = canais.map(canal => {
+          const checked = seqSet.has(canal);
+          const ordem = checked ? (item.sequenciaRemessa.indexOf(canal)+1) : "";
+          return `<div class="seq-card"><input type="checkbox" class="rot-seq-canal" value="${canal}" ${checked?"checked":""}/><span>${canal}</span><input type="number" class="rot-seq-ordem" value="${ordem}" min="1" placeholder="#" /></div>`;
+        }).join("");
+        div.innerHTML=`
+          <div class="routine-head">
+            <input type="time" class="rot-horario" value="${item.horario||""}" />
+            <div class="routine-title"><input type="text" class="rot-titulo" value="${escapeAttr(item.titulo)}" /></div>
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;"><input type="checkbox" class="rot-concluido" ${item.concluido?"checked":""}/> Concluído</label>
+          </div>
+          <div class="done-time">${item.concluidoEm ? `Concluído em: ${item.concluidoEm}` : "Ainda não concluído"}</div>
+          <div class="textarea-label">Descrição / orientação operacional</div>
+          <textarea class="rot-descricao">${escapeHtml(item.descricao||"")}</textarea>
+          <div class="textarea-label">Canais envolvidos</div><div class="routine-channels">${canaisHtml}</div>
+          <div class="textarea-label">Sequência de remessa por plataforma</div>${seqHtml}`;
+        container.appendChild(div);
+      });
+      container.querySelectorAll(".rot-concluido").forEach(chk=>chk.addEventListener("change",()=>marcarRotinaConcluida(Number(chk.closest(".routine-item").dataset.index), chk.checked)));
+    }
+
+    function lerProducaoDaTela() {
+      producaoAtual = [...document.querySelectorAll("#producao-list .row")].map((row,index)=>{
+        const nome=row.querySelector(".prod-nome").value.trim() || `PROCESSO ${index+1}`;
+        return { id: producaoAtual[index]?.id || slugify(nome), nome, horario: row.querySelector(".prod-horario").value || "", ativo: row.querySelector(".prod-ativo").checked, finalizado: row.querySelector(".prod-finalizado").checked };
+      });
+    }
+
+    function lerRotinaDaTela() {
+      rotinaAtual = [...document.querySelectorAll("#rotina-list .routine-item")].map((row,index)=>{
+        const titulo=row.querySelector(".rot-titulo").value.trim() || `Rotina ${index+1}`;
+        const canaisSelecionados=[...row.querySelectorAll(".rot-canal:checked")].map(el=>el.value);
+        const seq = [...row.querySelectorAll(".seq-card")].map(card=>({
+          canal: card.querySelector(".rot-seq-canal").value,
+          checked: card.querySelector(".rot-seq-canal").checked,
+          ordem: Number(card.querySelector(".rot-seq-ordem").value || 999)
+        })).filter(x=>x.checked).sort((a,b)=>a.ordem-b.ordem).map(x=>x.canal);
+        return { id: rotinaAtual[index]?.id || slugify(titulo), horario: row.querySelector(".rot-horario").value || "", titulo, descricao: row.querySelector(".rot-descricao").value.trim(), canais: canaisSelecionados, sequenciaRemessa: seq, concluido: row.querySelector(".rot-concluido").checked, concluidoEm: rotinaAtual[index]?.concluidoEm || "" };
+      });
+    }
+
+    function moverProducao(index,direction){ const newIndex=index+direction; if(newIndex<0||newIndex>=producaoAtual.length)return; lerProducaoDaTela(); const item=producaoAtual[index]; producaoAtual.splice(index,1); producaoAtual.splice(newIndex,0,item); renderProducao(); }
+
+    async function salvarProducao(mostrarToast=true){ lerProducaoDaTela(); await set(producaoRef,{sequencia:producaoAtual,atualizadoEm:Date.now(),atualizadoEmTexto:nowBrasiliaString(),atualizadoPor:"ADMIN",dataOperacional:DATA_OPERACIONAL}); if(mostrarToast)toast("Painel de produção salvo."); }
+    async function salvarRotina(mostrarToast=true){ lerRotinaDaTela(); await set(rotinaRef,{itens:rotinaAtual,atualizadoEm:Date.now(),atualizadoEmTexto:nowBrasiliaString(),atualizadoPor:"ADMIN",dataOperacional:DATA_OPERACIONAL}); if(mostrarToast)toast("Rotina de separação salva."); }
+
+    async function marcarRotinaConcluida(index, checked) {
+      lerRotinaDaTela();
+      rotinaAtual[index].concluido = checked;
+      rotinaAtual[index].concluidoEm = checked ? nowBrasiliaString() : "";
+      await set(rotinaRef,{itens:rotinaAtual,atualizadoEm:Date.now(),atualizadoEmTexto:nowBrasiliaString(),atualizadoPor:"ADMIN",dataOperacional:DATA_OPERACIONAL});
+      await set(alertaBroadcastRef,{txt: checked ? `Rotina concluída: <b>${rotinaAtual[index].horario} - ${rotinaAtual[index].titulo}</b>` : `Rotina reaberta: <b>${rotinaAtual[index].horario} - ${rotinaAtual[index].titulo}</b>`, ts: Date.now()});
+      renderRotina();
+      toast(checked ? "Rotina concluída e painel notificado." : "Rotina reaberta e painel notificado.");
+    }
+
+    async function salvarTudo(){ await salvarProducao(false); await salvarRotina(false); await set(alertaBroadcastRef,{txt:"As configurações de produção foram atualizadas pelo admin.",ts:Date.now()}); toast("Tudo salvo e enviado ao painel."); }
+    async function resetarDia(){ if(!confirm("Deseja resetar o status do dia?"))return; producaoAtual=producaoAtual.map(i=>({...i,finalizado:false})); rotinaAtual=rotinaAtual.map(i=>({...i,concluido:false,concluidoEm:""})); renderProducao(); renderRotina(); await salvarTudo(); toast("Dia resetado."); }
+
+    document.getElementById("btn-save-producao").addEventListener("click",()=>salvarProducao(true));
+    document.getElementById("btn-save-rotina").addEventListener("click",()=>salvarRotina(true));
+    document.getElementById("btn-save-all").addEventListener("click",salvarTudo);
+    document.getElementById("btn-reload").addEventListener("click",carregarTudo);
+    document.getElementById("btn-reset-dia").addEventListener("click",resetarDia);
+    document.getElementById("btn-init-producao").addEventListener("click",()=>{ if(!confirm("Restaurar sequência padrão de produção?"))return; producaoAtual=structuredClone(producaoPadrao); renderProducao(); toast("Sequência padrão carregada. Clique em salvar."); });
+    document.getElementById("btn-init-rotina").addEventListener("click",()=>{ if(!confirm("Restaurar rotina padrão de envio para separação?"))return; rotinaAtual=structuredClone(rotinaPadrao); renderRotina(); toast("Rotina padrão carregada. Clique em salvar."); });
+
+    function escapeHtml(str){return String(str||"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");}
+    function escapeAttr(str){return escapeHtml(str).replaceAll('"',"&quot;");}
+  </script>
+</body>
+</html>
