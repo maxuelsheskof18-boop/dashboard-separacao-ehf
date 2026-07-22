@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "cleanUrls": false,
@@ -7,15 +8,19 @@
   "rewrites": [
     { "source": "/", "destination": "/index.html" },
     { "source": "/painel", "destination": "/index.html" },
-    { "source": "/atrasados", "destination": "/atrasados.html" },
+    { "source": "/coletas", "destination": "/index.html" },
+    { "source": "/bipagem", "destination": "/index.html" },
     { "source": "/embalagem", "destination": "/embalagem.html" },
+    { "source": "/atrasados", "destination": "/atrasados.html" },
     { "source": "/admin", "destination": "/admin.html" }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Pragma", "value": "no-cache" },
+        { "key": "Expires", "value": "0" }
       ]
     }
   ]

@@ -1,28 +1,18 @@
-# Dashboard Separação EHF v4.2.14
+# Dashboard Separação EHF — v4.2.16
 
-Projeto limpo para GitHub + Vercel.
-
-## Importante
-
-Antes de subir esta versão, apague os arquivos antigos do repositório, principalmente arquivos como:
-
-- README-HOTFIX-*.md
-- README-HOTFIX-* (com nomes duplicados)
-- dist antigo, se preferir deixar o Vercel gerar novamente
-- arquivos PNG enviados acidentalmente como index.html
+Projeto real sincronizado para GitHub + Vercel.
 
 ## Vercel
-
-Configuração correta:
-
 - Framework: Other
-- Build Command: npm run build
-- Output Directory: dist
-- Install Command: npm install
-- Root Directory: ./
+- Build Command: `npm run build`
+- Output Directory: `dist`
+- Root Directory: `./`
 
 O build copia `site/` para `dist/`.
 
-## GitHub Pages
+## Importante
+As atualizações reais estão duplicadas em:
+- `index.html` e `site/index.html`
+- `modules/` e `site/modules/`
 
-Este pacote inclui `.nojekyll` na raiz para impedir o GitHub Pages de tentar processar arquivos com Jekyll.
+A versão v4.2.16 força cache busting dos módulos com `?v=4216`.
