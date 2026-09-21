@@ -1,0 +1,9 @@
+V3.4.4 — PUBLICAÇÃO DO PAINEL
+
+1. Publique primeiro o worker do Easypanel.
+2. Confirme em /api/health a versão 3.4.4-READY-STATE-IDEMPOTENT-SYNC.
+3. Confirme em /api/diagnostico/sync se as quatro contas estão configuradas.
+4. Publique todo o conteúdo deste pacote diretamente na raiz do painel.
+5. Faça Ctrl+F5.
+
+Nesta versão, um backend sem snapshot completo mostra “—” e o erro real; ele não transforma falha de sincronização em zeros.
