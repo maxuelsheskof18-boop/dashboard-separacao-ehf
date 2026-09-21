@@ -1,5 +1,5 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue, push } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getDatabase, ref, set, onValue, push, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCcO-kwO-vIFs8x0zchjlyc1bsOxCLnhgs",
@@ -263,30 +263,6 @@
       localStorage.setItem("ehf_painel_producao_posicao", JSON.stringify({ left, top }));
     }
 
-    function ajustarPainelProducaoDentroDaTela(painel) {
-      if (!painel || !document.body.contains(painel)) return;
-
-      const margem = 8;
-      const rect = painel.getBoundingClientRect();
-      let left = rect.left;
-      let top = rect.top;
-
-      if (rect.right > window.innerWidth - margem) {
-        left = Math.max(margem, window.innerWidth - rect.width - margem);
-      }
-      if (rect.bottom > window.innerHeight - margem) {
-        top = Math.max(margem, window.innerHeight - rect.height - margem);
-      }
-      if (left < margem) left = margem;
-      if (top < margem) top = margem;
-
-      painel.style.setProperty('left', `${left}px`, 'important');
-      painel.style.setProperty('top', `${top}px`, 'important');
-      painel.style.setProperty('right', 'auto', 'important');
-      painel.style.setProperty('bottom', 'auto', 'important');
-      salvarPosicaoPainelProducao(left, top);
-    }
-
     function habilitarArrastarPainelProducao(painel) {
       const header = painel.querySelector(".pp-header");
       if (!header || header.dataset.dragReady === "1") return;
@@ -359,315 +335,11 @@
       header.addEventListener("touchstart", iniciar, { passive: true });
     }
 
-    function garantirEstilosPainelProducao() {
-      if (document.getElementById('ehf-painel-producao-style')) return;
-
-      const style = document.createElement('style');
-      style.id = 'ehf-painel-producao-style';
-      style.textContent = `
-        #painel-producao-flutuante{
-          position:fixed!important;
-          right:18px!important;
-          bottom:18px!important;
-          width:min(760px,calc(100vw - 24px))!important;
-          height:auto!important;
-          min-height:0!important;
-          max-height:min(78vh,760px)!important;
-          box-sizing:border-box!important;
-          display:flex!important;
-          visibility:visible!important;
-          pointer-events:auto!important;
-          flex-direction:column!important;
-          overflow:hidden!important;
-          z-index:9992!important;
-          color:#f7f8fb!important;
-          background:linear-gradient(165deg,rgba(16,23,34,.985),rgba(5,8,13,.99))!important;
-          border:1px solid rgba(255,138,0,.52)!important;
-          border-radius:15px!important;
-          box-shadow:0 22px 58px rgba(0,0,0,.62),0 0 0 1px rgba(255,138,0,.06) inset!important;
-          font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
-          transform:none!important;
-          opacity:1!important;
-        }
-        #painel-producao-flutuante.pp-dragging{cursor:grabbing!important;user-select:none!important;box-shadow:0 28px 70px rgba(0,0,0,.74)!important}
-        #painel-producao-flutuante .pp-header{
-          display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;
-          padding:12px 12px 11px!important;background:linear-gradient(90deg,rgba(255,138,0,.18),rgba(255,138,0,.04))!important;
-          border-bottom:1px solid rgba(255,255,255,.07)!important;cursor:grab!important;touch-action:none!important
-        }
-        #painel-producao-flutuante .pp-head-main{display:flex!important;align-items:center!important;gap:10px!important;min-width:0!important}
-        #painel-producao-flutuante .pp-grip{color:#ff9b26!important;font-size:19px!important;line-height:1!important;letter-spacing:-2px!important}
-        #painel-producao-flutuante .pp-title{display:block!important;font-size:13px!important;font-weight:950!important;letter-spacing:.02em!important;color:#fff!important}
-        #painel-producao-flutuante .pp-subtitle{display:block!important;margin-top:2px!important;font-size:9px!important;color:#9da8b8!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-        #painel-producao-flutuante .pp-toggle{
-          flex:0 0 auto!important;width:32px!important;height:32px!important;border-radius:9px!important;cursor:pointer!important;
-          border:1px solid rgba(255,255,255,.10)!important;background:#151d28!important;color:#fff!important;font-size:17px!important;font-weight:900!important
-        }
-        #painel-producao-flutuante .pp-body{display:flex!important;flex-direction:column!important;height:auto!important;min-height:0!important;overflow:auto!important;padding:11px!important;gap:10px!important}
-        #painel-producao-flutuante.collapsed{width:310px!important;height:auto!important;min-height:0!important;max-height:58px!important}
-        #painel-producao-flutuante.collapsed .pp-header{border-bottom:0!important}
-        #painel-producao-flutuante.collapsed .pp-body{display:none!important;height:0!important;min-height:0!important;padding:0!important;margin:0!important;overflow:hidden!important}
-        #painel-producao-flutuante .pp-progress-wrap{display:grid!important;grid-template-columns:1fr auto!important;gap:8px!important;align-items:center!important}
-        #painel-producao-flutuante .pp-progress{grid-column:1/-1!important;height:6px!important;border-radius:999px!important;background:#242d39!important;overflow:hidden!important}
-        #painel-producao-flutuante .pp-progress i{display:block!important;height:100%!important;border-radius:inherit!important;background:linear-gradient(90deg,#ff8a00,#ffbd5a)!important}
-        #painel-producao-flutuante .pp-progress-label{font-size:10px!important;color:#aeb8c7!important}
-        #painel-producao-flutuante .pp-progress-value{font-size:11px!important;font-weight:950!important;color:#ffad42!important}
-        #painel-producao-flutuante .pp-next{
-          border:1px solid rgba(255,138,0,.25)!important;background:rgba(255,138,0,.075)!important;border-radius:11px!important;padding:10px!important
-        }
-        #painel-producao-flutuante .pp-next-top{display:flex!important;justify-content:space-between!important;gap:8px!important;color:#ffad42!important;font-size:9px!important;font-weight:900!important;text-transform:uppercase!important}
-        #painel-producao-flutuante .pp-next strong{display:block!important;margin-top:5px!important;font-size:11px!important;line-height:1.35!important;color:#fff!important}
-        #painel-producao-flutuante .pp-list{display:flex!important;flex-direction:column!important;gap:7px!important}
-        #painel-producao-flutuante .pp-row{
-          display:grid!important;grid-template-columns:54px minmax(0,1fr) auto!important;align-items:center!important;gap:8px!important;
-          padding:8px!important;border:1px solid rgba(255,255,255,.07)!important;background:#0c121b!important;border-radius:10px!important
-        }
-        #painel-producao-flutuante .pp-row.done{border-color:rgba(34,197,94,.36)!important;background:rgba(20,83,45,.18)!important}
-        #painel-producao-flutuante .pp-row.none{border-color:rgba(148,163,184,.25)!important;opacity:.77!important}
-        #painel-producao-flutuante .pp-row.late{border-color:rgba(239,68,68,.42)!important;background:rgba(127,29,29,.13)!important}
-        #painel-producao-flutuante .pp-time{font-size:10px!important;font-weight:950!important;color:#ff9d2e!important}
-        #painel-producao-flutuante .pp-channel{min-width:0!important}
-        #painel-producao-flutuante .pp-channel b{display:block!important;font-size:10px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-        #painel-producao-flutuante .pp-channel small{display:block!important;margin-top:2px!important;font-size:8px!important;font-weight:850!important;color:#8894a5!important;text-transform:uppercase!important}
-        #painel-producao-flutuante .pp-row.late .pp-channel small{color:#fca5a5!important}
-        #painel-producao-flutuante .pp-actions{display:flex!important;align-items:center!important;gap:5px!important}
-        #painel-producao-flutuante .pp-action{
-          border:1px solid rgba(255,255,255,.10)!important;background:#17202c!important;color:#cbd5e1!important;border-radius:8px!important;
-          min-height:29px!important;padding:5px 7px!important;font-size:8px!important;font-weight:950!important;cursor:pointer!important;white-space:nowrap!important
-        }
-        #painel-producao-flutuante .pp-action.done.active{background:#1f9d59!important;border-color:#35c878!important;color:#fff!important}
-        #painel-producao-flutuante .pp-action.none.active{background:#475569!important;border-color:#64748b!important;color:#fff!important}
-        #painel-producao-flutuante .pp-action:disabled{opacity:.45!important;cursor:wait!important}
-        #painel-producao-flutuante .pp-sections-grid{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;align-items:start!important;gap:10px!important;min-width:0!important}
-        #painel-producao-flutuante .pp-section{display:flex!important;flex-direction:column!important;gap:7px!important;min-width:0!important;padding:10px!important;border:1px solid rgba(255,255,255,.075)!important;border-radius:12px!important;background:rgba(8,13,20,.58)!important}
-        #painel-producao-flutuante .pp-section + .pp-section{padding-top:10px!important;border-top:1px solid rgba(255,255,255,.075)!important}
-        #painel-producao-flutuante .pp-section-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important}
-        #painel-producao-flutuante .pp-section-title{font-size:9px!important;font-weight:950!important;letter-spacing:.08em!important;text-transform:uppercase!important;color:#dce4ef!important}
-        #painel-producao-flutuante .pp-section-count{font-size:8px!important;font-weight:900!important;color:#ffad42!important;background:rgba(255,138,0,.10)!important;border:1px solid rgba(255,138,0,.18)!important;border-radius:999px!important;padding:3px 7px!important}
-        #painel-producao-flutuante .pp-routine-list{display:flex!important;flex-direction:column!important;gap:7px!important}
-        #painel-producao-flutuante .pp-routine-row{display:grid!important;grid-template-columns:48px minmax(0,1fr) auto!important;align-items:center!important;gap:8px!important;padding:8px!important;border:1px solid rgba(255,255,255,.07)!important;background:#0c121b!important;border-radius:10px!important}
-        #painel-producao-flutuante .pp-routine-row.done{border-color:rgba(34,197,94,.36)!important;background:rgba(20,83,45,.18)!important}
-        #painel-producao-flutuante .pp-routine-row.late{border-color:rgba(239,68,68,.42)!important;background:rgba(127,29,29,.13)!important}
-        #painel-producao-flutuante .pp-routine-time{font-size:10px!important;font-weight:950!important;color:#ff9d2e!important}
-        #painel-producao-flutuante .pp-routine-main{min-width:0!important}
-        #painel-producao-flutuante .pp-routine-main b{display:block!important;font-size:9px!important;line-height:1.3!important;color:#fff!important}
-        #painel-producao-flutuante .pp-routine-main small{display:block!important;margin-top:3px!important;font-size:8px!important;line-height:1.25!important;color:#8894a5!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-        #painel-producao-flutuante .pp-routine-row.late .pp-routine-main small{color:#fca5a5!important}
-        #painel-producao-flutuante .pp-routine-action{border:1px solid rgba(255,255,255,.10)!important;background:#17202c!important;color:#cbd5e1!important;border-radius:8px!important;min-height:29px!important;padding:5px 8px!important;font-size:8px!important;font-weight:950!important;cursor:pointer!important;white-space:nowrap!important}
-        #painel-producao-flutuante .pp-routine-action.active{background:#1f9d59!important;border-color:#35c878!important;color:#fff!important}
-        #painel-producao-flutuante .pp-routine-action:disabled{opacity:.45!important;cursor:wait!important}
-        #painel-producao-flutuante .pp-footer{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;padding-top:2px!important}
-        #painel-producao-flutuante .pp-date{font-size:8px!important;color:#7f8a99!important}
-        #painel-producao-flutuante .pp-admin{border:0!important;background:transparent!important;color:#ffad42!important;font-size:9px!important;font-weight:900!important;cursor:pointer!important;padding:5px!important}
-        body.ehf-bipagem-ativa #painel-producao-flutuante,#view-bipagem.active~#painel-producao-flutuante{display:none!important;visibility:hidden!important;pointer-events:none!important}
-        @media(max-width:980px){
-          #painel-producao-flutuante{width:min(390px,calc(100vw - 20px))!important;max-height:74vh!important}
-          #painel-producao-flutuante .pp-sections-grid{grid-template-columns:minmax(0,1fr)!important}
-          #painel-producao-flutuante.collapsed{width:310px!important;max-height:58px!important}
-        }
-        @media(max-width:720px){
-          #painel-producao-flutuante{right:8px!important;bottom:8px!important;width:min(350px,calc(100vw - 16px))!important;max-height:68vh!important}
-          #painel-producao-flutuante.collapsed{width:min(310px,calc(100vw - 16px))!important;max-height:58px!important}
-          #painel-producao-flutuante .pp-row{grid-template-columns:46px minmax(0,1fr)!important}
-          #painel-producao-flutuante .pp-actions{grid-column:1/-1!important;justify-content:flex-end!important}
-          #painel-producao-flutuante .pp-routine-row{grid-template-columns:46px minmax(0,1fr)!important}
-          #painel-producao-flutuante .pp-routine-action{grid-column:1/-1!important;justify-self:end!important}
-        }
-      `;
-      document.head.appendChild(style);
-    }
-
-    function escaparTextoPainelProducao(value) {
-      return String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-    }
-
-    function horarioEmMinutosPainel(value) {
-      const match = String(value || '').match(/^(\d{1,2}):(\d{2})$/);
-      if (!match) return 9999;
-      return (Number(match[1]) * 60) + Number(match[2]);
-    }
-
-    function minutosAgoraBrasiliaPainel() {
-      const parts = new Intl.DateTimeFormat('pt-BR', {
-        timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false
-      }).formatToParts(new Date());
-      const data = Object.fromEntries(parts.map(part => [part.type, part.value]));
-      return (Number(data.hour || 0) * 60) + Number(data.minute || 0);
-    }
-
     function renderPainelProducaoFlutuante(sequencia, rotina) {
       window.ehfProducaoAdmin = Array.isArray(sequencia) ? sequencia : [];
       window.ehfRotinaAdmin = Array.isArray(rotina) ? rotina : [];
-
       document.getElementById('painel-producao-flutuante')?.remove();
-      garantirEstilosPainelProducao();
-
-      const itens = window.ehfProducaoAdmin
-        .filter(item => item && item.ativo !== false)
-        .slice()
-        .sort((a, b) => horarioEmMinutosPainel(a.horario) - horarioEmMinutosPainel(b.horario));
-
-      const rotinas = window.ehfRotinaAdmin
-        .filter(item => item)
-        .slice()
-        .sort((a, b) => horarioEmMinutosPainel(a.horario) - horarioEmMinutosPainel(b.horario));
-
-      if (!itens.length && !rotinas.length) return;
-
-      const agora = minutosAgoraBrasiliaPainel();
-      const concluidos = itens.filter(item => item.finalizado || item.naoTem).length;
-      const percentual = Math.round((concluidos / Math.max(1, itens.length)) * 100);
-      const rotinasConcluidas = rotinas.filter(item => item.concluido).length;
-      const percentualSeparacao = Math.round((rotinasConcluidas / Math.max(1, rotinas.length)) * 100);
-      const progressoGeral = Math.round(((concluidos + rotinasConcluidas) / Math.max(1, itens.length + rotinas.length)) * 100);
-      const rotinasPendentes = rotinas.filter(item => !item.concluido);
-      const proximaRotina = rotinasPendentes.find(item => horarioEmMinutosPainel(item.horario) >= agora) || rotinasPendentes[0] || null;
-      const rotinaAtrasada = proximaRotina && horarioEmMinutosPainel(proximaRotina.horario) < agora;
-      const recolhido = localStorage.getItem('ehf_painel_producao_recolhido') === '1';
-
-      const painel = document.createElement('section');
-      painel.id = 'painel-producao-flutuante';
-      painel.className = recolhido ? 'collapsed' : '';
-      painel.setAttribute('aria-label', 'Painel operacional de Produção e Separação');
-
-      const posicao = getPosicaoPainelProducao();
-      if (posicao && Number.isFinite(Number(posicao.left)) && Number.isFinite(Number(posicao.top))) {
-        const left = Math.max(8, Number(posicao.left));
-        const top = Math.max(8, Number(posicao.top));
-        painel.style.setProperty('left', `${left}px`, 'important');
-        painel.style.setProperty('top', `${top}px`, 'important');
-        painel.style.setProperty('right', 'auto', 'important');
-        painel.style.setProperty('bottom', 'auto', 'important');
-      }
-
-      const rows = itens.map(item => {
-        const finalizado = Boolean(item.finalizado);
-        const naoTem = Boolean(item.naoTem);
-        const atrasado = !finalizado && !naoTem && horarioEmMinutosPainel(item.horario) < agora;
-        const status = finalizado ? 'Finalizado' : (naoTem ? 'Sem pedidos' : (atrasado ? 'Atrasado' : 'Pendente'));
-        const rowClass = finalizado ? 'done' : (naoTem ? 'none' : (atrasado ? 'late' : ''));
-        const id = escaparTextoPainelProducao(item.id);
-
-        return `
-          <div class="pp-row ${rowClass}">
-            <span class="pp-time">${escaparTextoPainelProducao(item.horario || '--:--')}</span>
-            <span class="pp-channel">
-              <b>${escaparTextoPainelProducao(item.nome || item.id)}</b>
-              <small>${status}</small>
-            </span>
-            <span class="pp-actions">
-              <button type="button" class="pp-action done ${finalizado ? 'active' : ''}" data-producao-id="${id}" data-producao-field="finalizado">✓ Feito</button>
-              <button type="button" class="pp-action none ${naoTem ? 'active' : ''}" data-producao-id="${id}" data-producao-field="naoTem">— Não tem</button>
-            </span>
-          </div>`;
-      }).join('');
-
-      const routineRows = rotinas.map(item => {
-        const concluido = Boolean(item.concluido);
-        const atrasado = !concluido && horarioEmMinutosPainel(item.horario) < agora;
-        const rowClass = concluido ? 'done' : (atrasado ? 'late' : '');
-        const status = concluido
-          ? `Concluído${item.concluidoEm ? ` · ${item.concluidoEm}` : ''}`
-          : (atrasado ? 'Envio pendente' : 'Aguardando horário');
-        const canais = Array.isArray(item.sequenciaRemessa) && item.sequenciaRemessa.length
-          ? item.sequenciaRemessa.join(' → ')
-          : (Array.isArray(item.canais) ? item.canais.join(', ') : '');
-        const id = escaparTextoPainelProducao(item.id);
-
-        return `
-          <div class="pp-routine-row ${rowClass}">
-            <span class="pp-routine-time">${escaparTextoPainelProducao(item.horario || '--:--')}</span>
-            <span class="pp-routine-main">
-              <b>${escaparTextoPainelProducao(item.titulo || item.descricao || 'Enviar para separação')}</b>
-              <small title="${escaparTextoPainelProducao(canais)}">${escaparTextoPainelProducao(status)}${canais ? ` · ${escaparTextoPainelProducao(canais)}` : ''}</small>
-            </span>
-            <button type="button" class="pp-routine-action ${concluido ? 'active' : ''}" data-rotina-id="${id}">${concluido ? '✓ Feito' : 'Marcar feito'}</button>
-          </div>`;
-      }).join('');
-
-      painel.innerHTML = `
-        <header class="pp-header">
-          <span class="pp-head-main">
-            <span class="pp-grip" aria-hidden="true">⠿</span>
-            <span>
-              <span class="pp-title">Operação do Dia</span>
-              <span class="pp-subtitle">Produção ${concluidos}/${itens.length} · Separação ${rotinasConcluidas}/${rotinas.length} · operador ${escaparTextoPainelProducao(nomeOperadorLocal || 'PAINEL')}</span>
-            </span>
-          </span>
-          <button id="pp-toggle" class="pp-toggle" type="button" aria-label="${recolhido ? 'Expandir' : 'Recolher'} painel">${recolhido ? '+' : '−'}</button>
-        </header>
-        <div class="pp-body">
-          <div class="pp-progress-wrap">
-            <span class="pp-progress-label">Andamento geral do dia</span>
-            <strong class="pp-progress-value">${progressoGeral}%</strong>
-            <span class="pp-progress"><i style="width:${progressoGeral}%"></i></span>
-          </div>
-          ${proximaRotina ? `
-            <div class="pp-next">
-              <div class="pp-next-top"><span>${rotinaAtrasada ? 'Separação pendente' : 'Próximo envio para separação'}</span><span>${escaparTextoPainelProducao(proximaRotina.horario || '--:--')}</span></div>
-              <strong>${escaparTextoPainelProducao(proximaRotina.titulo || proximaRotina.descricao || 'Rotina operacional')}</strong>
-            </div>` : ''}
-          <div class="pp-sections-grid">
-            ${itens.length ? `
-              <section class="pp-section pp-section-producao">
-                <div class="pp-section-head"><span class="pp-section-title">Produção</span><span class="pp-section-count">${concluidos}/${itens.length} · ${percentual}%</span></div>
-                <div class="pp-list">${rows}</div>
-              </section>` : ''}
-            ${rotinas.length ? `
-              <section class="pp-section pp-section-separacao">
-                <div class="pp-section-head"><span class="pp-section-title">Envio para Separação</span><span class="pp-section-count">${rotinasConcluidas}/${rotinas.length} · ${percentualSeparacao}%</span></div>
-                <div class="pp-routine-list">${routineRows}</div>
-              </section>` : ''}
-          </div>
-          <footer class="pp-footer">
-            <span class="pp-date">Data operacional: ${escaparTextoPainelProducao(DATA_OPERACIONAL)}</span>
-            <span class="pp-date">Somente execução · configuração no Admin</span>
-          </footer>
-        </div>`;
-
-      document.body.appendChild(painel);
-      setTimeout(() => ajustarPainelProducaoDentroDaTela(painel), 0);
-
-      painel.querySelector('#pp-toggle')?.addEventListener('click', event => {
-        event.stopPropagation();
-        const collapsed = painel.classList.toggle('collapsed');
-        localStorage.setItem('ehf_painel_producao_recolhido', collapsed ? '1' : '0');
-        event.currentTarget.textContent = collapsed ? '+' : '−';
-        event.currentTarget.setAttribute('aria-label', collapsed ? 'Expandir painel' : 'Recolher painel');
-        setTimeout(() => ajustarPainelProducaoDentroDaTela(painel), 0);
-      });
-
-      painel.querySelectorAll('[data-producao-id][data-producao-field]').forEach(button => {
-        button.addEventListener('click', async () => {
-          const id = button.dataset.producaoId;
-          const field = button.dataset.producaoField;
-          const item = (window.ehfProducaoAdmin || []).find(row => String(row.id) === String(id));
-          const checked = !Boolean(item?.[field]);
-          painel.querySelectorAll('.pp-action,.pp-routine-action').forEach(action => { action.disabled = true; });
-          await atualizarStatusProducaoPainel(id, field, checked);
-        });
-      });
-
-      painel.querySelectorAll('[data-rotina-id]').forEach(button => {
-        button.addEventListener('click', async () => {
-          const id = button.dataset.rotinaId;
-          const item = (window.ehfRotinaAdmin || []).find(row => String(row.id) === String(id));
-          const checked = !Boolean(item?.concluido);
-          painel.querySelectorAll('.pp-action,.pp-routine-action').forEach(action => { action.disabled = true; });
-          await atualizarStatusRotinaPainel(id, checked);
-        });
-      });
-
-      habilitarArrastarPainelProducao(painel);
-      atualizarVisibilidadePainelProducao();
     }
-
-    window.ehfRenderPainelProducao = renderPainelProducaoFlutuante;
 
     async function atualizarStatusProducaoPainel(id, field, checked) {
       const sequenciaAtual = Array.isArray(window.ehfProducaoAdmin) && window.ehfProducaoAdmin.length > 0
@@ -717,39 +389,6 @@
       }
     }
 
-
-    async function atualizarStatusRotinaPainel(id, checked) {
-      const rotinaAtual = Array.isArray(window.ehfRotinaAdmin) && window.ehfRotinaAdmin.length > 0
-        ? window.ehfRotinaAdmin
-        : rotinaPadraoPainel;
-
-      const concluidoEm = checked ? formatHorarioBrasilia(new Date(), true) : '';
-      const novaRotina = rotinaAtual.map(item => String(item.id) === String(id)
-        ? { ...item, concluido: checked, concluidoEm, concluidoPor: checked ? (nomeOperadorLocal || 'PAINEL') : '' }
-        : item);
-
-      window.ehfRotinaAdmin = novaRotina;
-      renderPainelProducaoFlutuante(window.ehfProducaoAdmin || producaoPadraoPainel, novaRotina);
-
-      const itemAlterado = novaRotina.find(item => String(item.id) === String(id));
-
-      try {
-        await set(rotinaAdminRef, {
-          itens: novaRotina,
-          atualizadoEm: Date.now(),
-          atualizadoEmTexto: formatHorarioBrasilia(new Date(), true),
-          atualizadoPor: nomeOperadorLocal || 'PAINEL'
-        });
-
-        await set(alertaBroadcastRef, {
-          txt: `O operador <b>${nomeOperadorLocal || 'PAINEL'}</b> ${checked ? 'concluiu' : 'reabriu'} a rotina de separação <b>${itemAlterado?.titulo || id}</b>.`,
-          ts: Date.now()
-        });
-      } catch (err) {
-        console.warn('Erro ao atualizar rotina de separação pelo painel:', err);
-      }
-    }
-
     const estadoRef = ref(db, diaPath('estado_atual'));
     const alertaBroadcastRef = ref(db, 'expedicao/ultimo_alerta');
     const bipagemRef = ref(db, diaPath('bipagens_dia'));
@@ -783,13 +422,22 @@
       {
         titulo: "OUTRAS PLATAFORMAS",
         lojas: [
-          { id: 'amazon', name: 'AMAZON' },
-          { id: 'tiktok', name: 'TIKTOK' },
-          { id: 'melhor_envio', name: 'MELHOR ENVIO' },
-          { id: 'magalu', name: 'MAGALU' }
+          { id: 'amazon', name: 'AMAZON', defaultTime: '13:00' },
+          { id: 'tiktok', name: 'TIKTOK', defaultTime: '17:00' },
+          { id: 'melhor_envio', name: 'MELHOR ENVIO', defaultTime: '15:00' },
+          { id: 'magalu', name: 'MAGALU', defaultTime: '11:00' }
         ]
       }
     ];
+
+    // IDs das linhas cujo horário-limite é preenchido automaticamente a
+    // partir do cartão "Agência / Coleta até HH:MM" do Mercado Livre
+    // (mesma fonte do painel de cards mais abaixo, rota
+    // /api/mercadolivre/horarios), com 1h de folga subtraída. O id de cada
+    // linha já é igual à key da conta no Mercado Livre (comercio,
+    // suprimentos, ekn, distribuidora), então o cruzamento é direto.
+    const ML_AUTO_TIME_ROW_IDS = ['comercio', 'suprimentos', 'ekn', 'distribuidora'];
+    const ML_AUTO_TIME_BUFFER_MINUTES = 60;
 
     let localTasks = [];
     let isUpdatingFromFirebase = false;
@@ -799,27 +447,7 @@
     const ALARM_SNOOZE_MS = 10 * 60 * 1000;
     const ALARM_RESOLVED_RECHECK_MS = 10 * 60 * 1000;
     const ALARM_CHECK_MS = 30 * 1000;
-    const ML_ALARM_OFFSET_MINUTES = 60;
     const alarmState = {};
-
-    function ehfGarantirEstiloAlarmesML() {
-      if (document.getElementById('ehf-ml-auto-alarm-style')) return;
-      const style = document.createElement('style');
-      style.id = 'ehf-ml-auto-alarm-style';
-      style.textContent = `
-        .cp-time-block{display:inline-flex;flex-direction:column;gap:3px;align-items:flex-start;min-width:82px}
-        .cp-time-block small{font-size:8px;line-height:1;color:#93a4bc;font-weight:900;text-transform:uppercase;letter-spacing:.35px}
-        .cp-time-block.alarm small{color:#ffb454}
-        .cp-time-block.alarm input{border-color:rgba(255,138,0,.55);box-shadow:0 0 0 1px rgba(255,138,0,.10)}
-        .cp-time-block.alarm input.input-invalid{border-color:rgba(239,68,68,.85)!important;box-shadow:0 0 0 1px rgba(239,68,68,.28)!important;color:#fecaca!important}
-        .cp-time-block.alarm input::placeholder{color:#64748b}
-        .cp-alarm-meta{font-size:9px;color:#8ea0b8;width:100%;line-height:1.35;margin-top:-3px}
-        .cp-alarm-meta b{color:#ffb454}.cp-alarm-meta .manual{color:#fbbf24}.cp-alarm-meta .auto{color:#86efac}
-        .cp-auto-alarm-btn{border:1px solid rgba(255,138,0,.42);background:rgba(255,138,0,.08);color:#ffb454;border-radius:7px;padding:6px 8px;font-size:9px;font-weight:900;cursor:pointer;white-space:nowrap}
-        .cp-auto-alarm-btn:disabled{opacity:.45;cursor:not-allowed}
-      `;
-      document.head.appendChild(style);
-    }
 
     function gerenciarLoginServidor() {
       let user = localStorage.getItem('ehf_operador');
@@ -858,6 +486,96 @@
     /* ========== SESSÃO DE COLETA / ROMANEIO ========== */
     const EHF_WORKER_BASE = String(window.EHF_API_BASE || 'https://atendente-vesco-separacao.2cwhzy.easypanel.host').replace(/\/+$/, '');
     let ehfBipSession = null;
+    const EHF_FAST_BIP_QUEUE_KEY = `ehf_fast_bip_queue_${DATA_OPERACIONAL}`;
+    const ehfFastBipSeen = new Set();
+    let ehfFastBipQueue = [];
+    let ehfFastBipInFlight = 0;
+    let ehfFastBipPollBusy = false;
+    let ehfFastLastServerQueue = { resolver: { pending: 0 }, sheet: { pending: 0 } };
+
+    function ehfFastLoadPendingQueue() {
+      try {
+        const rows = JSON.parse(localStorage.getItem(EHF_FAST_BIP_QUEUE_KEY) || '[]');
+        ehfFastBipQueue = Array.isArray(rows) ? rows.filter((row) => row && row.code && row.sessionId) : [];
+        ehfFastBipQueue.forEach((row) => ehfFastBipSeen.add(String(row.normalized || limparCodigoBipado(row.code))));
+      } catch (_) { ehfFastBipQueue = []; }
+    }
+
+    function ehfFastPersistQueue() {
+      try { localStorage.setItem(EHF_FAST_BIP_QUEUE_KEY, JSON.stringify(ehfFastBipQueue.slice(-500))); } catch (_) {}
+      ehfFastUpdateQueueUi();
+    }
+
+    function ehfFastUpdateQueueUi(summary) {
+      const local = ehfFastBipQueue.length + ehfFastBipInFlight;
+      const pending = Number(summary?.pendingResolution ?? ehfBipSession?.summary?.pendingResolution ?? ehfFastLastServerQueue?.resolver?.pending ?? 0);
+      const sheet = Number(summary?.sheetPending ?? ehfBipSession?.summary?.sheetPending ?? ehfFastLastServerQueue?.sheet?.pending ?? 0);
+      const q = document.getElementById('bip-session-queue'); if (q) q.textContent = String(local);
+      const p = document.getElementById('bip-session-pending'); if (p) p.textContent = String(pending);
+      const sh = document.getElementById('bip-session-sheet'); if (sh) sh.textContent = String(sheet);
+      const status = document.querySelector('.bip-scan-hero .scan-status');
+      if (status) {
+        status.textContent = local > 0 ? `Salvando ${local}` : pending > 0 ? `Identificando ${pending}` : 'Pronto';
+        status.classList.toggle('busy', local > 0 || pending > 0);
+      }
+    }
+
+    function ehfFastStatusFromScan(scan) {
+      const resolution = String(scan?.resolution_status || '').toUpperCase();
+      if (resolution === 'RESOLVIDO') return scan.status === 'CANAL_DIVERGENTE' ? 'Canal divergente' : 'Conferido';
+      if (resolution === 'NAO_LOCALIZADO' || resolution === 'ERRO_FINAL') return 'Não localizado';
+      return 'Identificando...';
+    }
+
+    function ehfFastRefreshSeenFromSession(detail) {
+      (detail?.scans || []).forEach((scan) => {
+        const code = String(scan.normalized_code || scan.scanned_code || '').trim();
+        if (code) ehfFastBipSeen.add(code);
+      });
+    }
+
+    function ehfFastSyncFirebaseFromSession(detail) {
+      const scans = detail?.scans || [];
+      if (!scans.length || !(ehfBipagensCache || []).length) return;
+      const byId = new Map(scans.map((scan) => [String(scan.id || ''), scan]));
+      const byCode = new Map(scans.map((scan) => [String(scan.normalized_code || scan.scanned_code || '').trim(), scan]));
+      (ehfBipagensCache || []).forEach((cached) => {
+        const code = String(cached.codigoLimpo || cached.codigo || '').trim();
+        const scan = (cached.scanId ? byId.get(String(cached.scanId)) : null) || byCode.get(code);
+        if (!scan || !cached._firebaseKey) return;
+        const nextStatus = ehfFastStatusFromScan(scan);
+        const nextTiny = String(scan.tiny_number || '');
+        const nextMarket = String(scan.ecommerce_order_id || '');
+        const nextStore = String(scan.account || cached.lojaKey || 'nao_localizada');
+        const nextUnits = Number(scan.total_units || 0);
+        const nextResolution = String(scan.resolution_status || '');
+        const unchanged = String(cached.status || '') === nextStatus &&
+          String(cached.pedidoTiny || '') === nextTiny && String(cached.pedidoMarketplace || '') === nextMarket &&
+          Number(cached.totalUnidades || 0) === nextUnits && String(cached.lookupStatus || '') === nextResolution &&
+          String(cached.scanId || '') === String(scan.id || '');
+        if (unchanged) return;
+        const payload = { ...cached };
+        delete payload._firebaseKey;
+        Object.assign(payload, {
+          scanId: scan.id,
+          lojaKey: nextStore,
+          lojaNome: NOMES_LOJAS_BIPAGEM[nextStore] || nextStore || 'Não localizada',
+          plataforma: scan.platform || cached.plataforma || 'A identificar',
+          canal: scan.channel_code || cached.canal || '',
+          canalNome: scan.channel_name || cached.canalNome || '',
+          idEtiqueta: scan.normalized_code || cached.idEtiqueta || code,
+          codigoRastreio: scan.shipment_id || cached.codigoRastreio || code,
+          pedidoTiny: nextTiny,
+          pedidoMarketplace: nextMarket,
+          totalUnidades: nextUnits,
+          lookupStatus: nextResolution,
+          lookupTentativas: Number(scan.resolution_attempts || 0),
+          status: nextStatus,
+          observacao: scan.error || (nextStatus === 'Conferido' ? 'Pedido identificado em segundo plano.' : cached.observacao || '')
+        });
+        set(ref(db, `${diaPath('bipagens_dia')}/${cached._firebaseKey}`), payload).catch(()=>{});
+      });
+    }
 
     function ehfApiHeaders() {
       const headers = { 'Content-Type': 'application/json' };
@@ -867,14 +585,19 @@
     }
 
     async function ehfApi(path, options = {}) {
-      const response = await fetch(EHF_WORKER_BASE + path, {
+      const method = String(options.method || 'GET').toUpperCase();
+      const separator = String(path).includes('?') ? '&' : '?';
+      const requestPath = method === 'GET' ? `${path}${separator}_ts=${Date.now()}` : path;
+      const response = await fetch(EHF_WORKER_BASE + requestPath, {
+        cache: 'no-store',
         ...options,
         headers: { ...ehfApiHeaders(), ...(options.headers || {}) }
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        const error = new Error(data.error || `Erro HTTP ${response.status}`);
+        const error = new Error(data.error || data.message || `Erro HTTP ${response.status}`);
         error.data = data;
+        error.status = response.status;
         throw error;
       }
       return data;
@@ -923,6 +646,9 @@
       const btnFinish = document.getElementById('btn-bip-session-finish');
       document.getElementById('bip-session-packages').textContent = Number(summary.packages || 0);
       document.getElementById('bip-session-units').textContent = Number(summary.totalUnits || 0);
+      ehfFastRefreshSeenFromSession(detail);
+      ehfFastSyncFirebaseFromSession(detail);
+      ehfFastUpdateQueueUi(summary);
       const meta = document.getElementById('bip-session-current-meta');
       window.ehfBipHasOpenSession = !!(session && session.status === 'ABERTA');
       if (!session || session.status !== 'ABERTA') {
@@ -994,17 +720,19 @@
     function ehfPrintManifest(detail) {
       if (!detail?.session) return;
       const { session, scans = [], summary = {} } = detail;
-      const rows = scans.filter((scan) => scan.status !== 'NAO_LOCALIZADO').map((scan, index) => {
+      const rows = scans.map((scan, index) => {
         const products = (scan.items || []).map((item) => `${Number(item.quantity || item.quantidade || 0)}x ${item.description || item.descricao || item.sku || item.codigo || ''}`).join('<br>');
-        return `<tr><td>${index + 1}</td><td>${ehfEscapeHtml((scan.account || '').toUpperCase())}</td><td>${ehfEscapeHtml(scan.tiny_number || '-')}</td><td>${ehfEscapeHtml(scan.ecommerce_order_id || '-')}</td><td>${ehfEscapeHtml(scan.normalized_code || scan.shipment_id || '-')}</td><td>${products || '-'}</td><td>${Number(scan.total_units || 0)}</td></tr>`;
+        const status = ehfFastStatusFromScan(scan);
+        return `<tr><td>${index + 1}</td><td><b>#${Number(scan.id || 0)}</b></td><td>${ehfEscapeHtml((scan.account || session.account || '-').toUpperCase())}</td><td>${ehfEscapeHtml(scan.tiny_number || '-')}</td><td>${ehfEscapeHtml(scan.ecommerce_order_id || '-')}</td><td>${ehfEscapeHtml(scan.normalized_code || scan.shipment_id || scan.scanned_code || '-')}</td><td>${ehfEscapeHtml(scan.capture_category || '-')}</td><td>${ehfEscapeHtml(status)}</td><td>${products || '-'}</td><td>${Number(scan.total_units || 0)}</td></tr>`;
       }).join('');
-      const win = window.open('', '_blank', 'width=1100,height=800');
+      const firstId = summary.firstScanId || (scans[0]?.id || '-');
+      const lastId = summary.lastScanId || (scans.length ? scans[scans.length - 1]?.id : '-');
+      const idRange = scans.length ? (String(firstId) === String(lastId) ? `#${firstId}` : `#${firstId} a #${lastId}`) : '-';
+      const win = window.open('', '_blank', 'width=1180,height=820');
       if (!win) return ehfBipToast('O navegador bloqueou a abertura do romaneio.', true);
-      win.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Romaneio #${session.id}</title><style>body{font-family:Arial,sans-serif;color:#111;margin:26px}h1{margin:0;font-size:24px}.head{display:flex;justify-content:space-between;border-bottom:3px solid #111;padding-bottom:12px}.meta{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}.meta div{border:1px solid #bbb;padding:9px}.meta span{display:block;font-size:10px;text-transform:uppercase;color:#555}.meta b{font-size:13px}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #aaa;padding:7px;vertical-align:top}th{background:#eee}.totals{display:flex;gap:12px;margin:15px 0}.totals div{border:2px solid #111;padding:10px 16px}.signatures{display:grid;grid-template-columns:1fr 1fr;gap:50px;margin-top:70px}.signature{border-top:1px solid #111;text-align:center;padding-top:6px}.foot{margin-top:24px;font-size:9px;color:#555}@media print{button{display:none}body{margin:12mm}}</style></head><body><div class="head"><div><h1>EHF LOGÍSTICA</h1><div>Romaneio de coleta / expedição</div></div><div><b>ROMANEIO #${session.id}</b><br>${new Date().toLocaleString('pt-BR')}</div></div><div class="meta"><div><span>Canal</span><b>${ehfEscapeHtml(session.channel_name)}</b></div><div><span>Responsável / coletor</span><b>${ehfEscapeHtml(session.collector_name)}</b></div><div><span>Conferente</span><b>${ehfEscapeHtml(session.checker_name || session.operator)}</b></div><div><span>Início</span><b>${new Date(session.opened_at).toLocaleString('pt-BR')}</b></div><div><span>Fim</span><b>${session.closed_at ? new Date(session.closed_at).toLocaleString('pt-BR') : 'Em andamento'}</b></div><div><span>Observações</span><b>${ehfEscapeHtml(session.notes || '-')}</b></div></div><table><thead><tr><th>#</th><th>Loja</th><th>Pedido Tiny</th><th>Pedido marketplace</th><th>Etiqueta / envio</th><th>Produtos</th><th>Unidades</th></tr></thead><tbody>${rows || '<tr><td colspan="7">Nenhum pacote localizado.</td></tr>'}</tbody></table><div class="totals"><div><b>${Number(summary.packages || 0)}</b><br>pacotes</div><div><b>${Number(summary.uniqueOrders || 0)}</b><br>pedidos</div><div><b>${Number(summary.totalUnits || 0)}</b><br>unidades</div><div><b>${Number(summary.notFound || 0)}</b><br>não localizados</div></div><div class="signatures"><div class="signature">Entregue/conferido por: ${ehfEscapeHtml(session.checker_name || session.operator)}</div><div class="signature">Recebido por: ${ehfEscapeHtml(session.collector_name)}</div></div><div class="signatures"><div class="signature">Documento / placa</div><div class="signature">Assinatura e data/hora</div></div><div class="foot">Gerado pelo Dashboard de Separação EHF · sessão ${session.id}</div></body></html>`);
+      win.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Romaneio #${session.id}</title><style>body{font-family:Arial,sans-serif;color:#111;margin:26px}h1{margin:0;font-size:24px}.head{display:flex;justify-content:space-between;border-bottom:3px solid #111;padding-bottom:12px}.meta{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}.meta div{border:1px solid #bbb;padding:9px}.meta span{display:block;font-size:10px;text-transform:uppercase;color:#555}.meta b{font-size:13px}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #aaa;padding:6px;vertical-align:top}th{background:#eee}.totals{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:15px 0}.totals div{border:2px solid #111;padding:9px;text-align:center}.totals b{font-size:21px}.receipt{margin:22px 0 0;border:2px solid #111;padding:12px;font-size:12px;line-height:1.5}.signatures{display:grid;grid-template-columns:1fr 1fr;gap:50px;margin-top:70px}.signature{border-top:1px solid #111;text-align:center;padding-top:6px}.foot{margin-top:24px;font-size:9px;color:#555}@media print{button{display:none}body{margin:9mm}}@page{size:A4 landscape;margin:8mm}</style></head><body><div class="head"><div><h1>EHF LOGÍSTICA</h1><div>Romaneio de coleta / expedição</div></div><div><b>ROMANEIO #${session.id}</b><br>${new Date().toLocaleString('pt-BR')}</div></div><div class="meta"><div><span>Canal</span><b>${ehfEscapeHtml(session.channel_name)}</b></div><div><span>Responsável / coletor</span><b>${ehfEscapeHtml(session.collector_name)}</b></div><div><span>Conferente</span><b>${ehfEscapeHtml(session.checker_name || session.operator)}</b></div><div><span>Início</span><b>${new Date(session.opened_at).toLocaleString('pt-BR')}</b></div><div><span>Fim</span><b>${session.closed_at ? new Date(session.closed_at).toLocaleString('pt-BR') : 'Em andamento'}</b></div><div><span>IDs internos de bipagem</span><b>${ehfEscapeHtml(idRange)}</b></div></div><div class="totals"><div><b>${Number(summary.packages || scans.length || 0)}</b><br>volumes bipados</div><div><b>${Number(summary.resolvedPackages || 0)}</b><br>identificados</div><div><b>${Number(summary.pendingResolution || 0)}</b><br>em identificação</div><div><b>${Number(summary.uniqueOrders || 0)}</b><br>pedidos</div><div><b>${Number(summary.totalUnits || 0)}</b><br>unidades</div><div><b>${Number(summary.channelDivergence || 0)}</b><br>divergências</div></div><table><thead><tr><th>#</th><th>ID bipagem</th><th>Loja</th><th>Pedido Tiny</th><th>Pedido marketplace</th><th>Código / rastreio</th><th>Categoria</th><th>Status</th><th>Produtos</th><th>Unid.</th></tr></thead><tbody>${rows || '<tr><td colspan="10">Nenhuma leitura registrada.</td></tr>'}</tbody></table><div class="receipt">Declaro o recebimento de <b>${Number(summary.packages || scans.length || 0)} volume(s)</b> referentes ao <b>Romaneio #${session.id}</b>, identificados internamente pela faixa <b>${ehfEscapeHtml(idRange)}</b>. Pedidos ainda em identificação poderão ser vinculados automaticamente em segundo plano sem alterar a quantidade física recebida.</div><div class="signatures"><div class="signature">Entregue/conferido por: ${ehfEscapeHtml(session.checker_name || session.operator)}</div><div class="signature">Recebido por: ${ehfEscapeHtml(session.collector_name)}</div></div><div class="signatures"><div class="signature">Documento / placa</div><div class="signature">Assinatura e data/hora</div></div><div class="foot">Dashboard EHF · Romaneio #${session.id} · ${Number(summary.packages || scans.length || 0)} volumes · IDs ${ehfEscapeHtml(idRange)}</div></body></html>`);
       win.document.close();
-      setTimeout(() => {
-        try { win.focus(); win.print(); } catch (_) {}
-      }, 350);
+      setTimeout(() => { try { win.focus(); win.print(); } catch (_) {} }, 350);
     }
 
     async function ehfRefreshBipSession() {
@@ -1042,7 +770,14 @@
     document.getElementById('btn-bip-session-manifest')?.addEventListener('click', () => ehfPrintManifest(ehfBipSession));
     document.getElementById('btn-bip-session-finish')?.addEventListener('click', ehfFinishBipSession);
     document.getElementById('bip-session-modal')?.addEventListener('click', (event) => { if (event.target.id === 'bip-session-modal') ehfCloseBipSessionModal(); });
+    ehfFastLoadPendingQueue();
     ehfLoadBipSession();
+    setInterval(async () => {
+      if (ehfFastBipPollBusy || !ehfBipSession?.session?.id || ehfBipSession.session.status !== 'ABERTA') return;
+      ehfFastBipPollBusy = true;
+      try { await ehfRefreshBipSession(); } finally { ehfFastBipPollBusy = false; }
+    }, 1600);
+    setInterval(ehfFastDrainQueue, 700);
 
     /* ========== BIPAGEM INTELIGENTE POR PLATAFORMA + LOJA ========== */
 
@@ -1317,98 +1052,157 @@
       return melhor;
     }
 
-    async function processarBipagem(codigoDigitado) {
+    function ehfFastFirebaseRef(firebaseKey) {
+      return firebaseKey ? ref(db, `${diaPath('bipagens_dia')}/${firebaseKey}`) : null;
+    }
+
+    function ehfFastOptimisticPayload(code, normalized, info, firebaseKey) {
+      const session = ehfBipSession?.session || {};
+      const lojaKey = session.account || 'nao_localizada';
+      return {
+        codigo: code,
+        codigoLimpo: normalized,
+        plataforma: info.plataforma === 'Desconhecida' ? 'A identificar' : info.plataforma,
+        canal: info.canal || '',
+        canalNome: info.canalNome === 'Desconhecido' ? session.channel_name || 'A identificar' : info.canalNome,
+        canalEsperado: session.channel_name || '',
+        lojaKey,
+        lojaNome: NOMES_LOJAS_BIPAGEM[lojaKey] || 'A localizar',
+        idEtiqueta: info.idEtiqueta || normalized,
+        codigoRastreio: info.codigoRastreio || normalized,
+        tipo: info.tipo || 'captura_rapida',
+        categoriaCodigo: info.tipo || 'captura_rapida',
+        observacao: 'Leitura salva. Pedido sendo identificado em segundo plano.',
+        lookupStatus: 'PENDENTE',
+        status: 'Identificando...',
+        operador: nomeOperadorLocal,
+        coletor: session.collector_name || '',
+        sessaoBipagemId: session.id,
+        pedidoTiny: '',
+        pedidoMarketplace: '',
+        totalUnidades: 0,
+        horario: formatHorarioBrasilia(new Date(), true),
+        horarioCompleto: formatHorarioBrasilia(new Date(), true),
+        ts: Date.now(),
+        firebaseKey
+      };
+    }
+
+    function ehfFastScheduleRetry(item, error) {
+      item.attempts = Number(item.attempts || 0) + 1;
+      item.lastError = String(error?.message || error || 'Falha de rede');
+      const wait = Math.min(15000, 500 * Math.pow(1.7, Math.min(item.attempts, 8)));
+      item.nextAt = Date.now() + wait;
+      ehfFastBipQueue.push(item);
+      ehfFastPersistQueue();
+      setTimeout(ehfFastDrainQueue, wait + 20);
+    }
+
+    async function ehfFastSendCapture(item) {
+      try {
+        const data = await ehfApi(`/api/bipagem/sessoes/${item.sessionId}/capturar`, {
+          method: 'POST',
+          body: JSON.stringify({ codigo: item.code, operator: item.operator, capturedAt: item.capturedAt })
+        });
+        ehfFastLastServerQueue = data.queue || ehfFastLastServerQueue;
+        const firebaseRef = ehfFastFirebaseRef(item.firebaseKey);
+        if (data.duplicate) {
+          if (firebaseRef) remove(firebaseRef).catch(()=>{});
+          tocarSomConfirmacaoLeitura(false);
+          ehfBipToast(`Duplicado: ${item.normalized} já foi bipado hoje.`, true);
+          return;
+        }
+        if (firebaseRef && data.scan) {
+          const current = ehfBipagensCache.find((row) => row._firebaseKey === item.firebaseKey) || item.optimistic || {};
+          const payload = { ...current };
+          delete payload._firebaseKey;
+          Object.assign(payload, {
+            scanId: data.scan.id,
+            categoriaCodigo: data.scan.capture_category || data.category || payload.categoriaCodigo || '',
+            lookupStatus: data.scan.resolution_status || 'PENDENTE',
+            status: 'Identificando...',
+            observacao: 'Leitura confirmada pelo servidor. Pedido sendo identificado em segundo plano.'
+          });
+          set(firebaseRef, payload).catch(()=>{});
+        }
+        const pkg = document.getElementById('bip-session-packages'); if (pkg && data.summary) pkg.textContent = Number(data.summary.packages || 0);
+        ehfFastUpdateQueueUi(data.summary);
+      } catch (error) {
+        if ([400,404,409].includes(Number(error?.status || 0))) {
+          const firebaseRef = ehfFastFirebaseRef(item.firebaseKey);
+          if (firebaseRef) {
+            const payload = { ...(item.optimistic || {}), status: 'Erro de sessão', lookupStatus: 'ERRO', observacao: error.message || 'Não foi possível salvar a leitura.' };
+            set(firebaseRef, payload).catch(()=>{});
+          }
+          tocarSomConfirmacaoLeitura(false);
+          ehfBipToast(error.message || 'Não foi possível salvar a leitura.', true);
+          return;
+        }
+        ehfFastScheduleRetry(item, error);
+      }
+    }
+
+    function ehfFastDrainQueue() {
+      const MAX_IN_FLIGHT = 4;
+      if (!ehfFastBipQueue.length) return ehfFastUpdateQueueUi();
+      const now = Date.now();
+      while (ehfFastBipInFlight < MAX_IN_FLIGHT) {
+        const index = ehfFastBipQueue.findIndex((item) => Number(item.nextAt || 0) <= now);
+        if (index < 0) break;
+        const item = ehfFastBipQueue.splice(index, 1)[0];
+        ehfFastBipInFlight += 1;
+        ehfFastPersistQueue();
+        ehfFastSendCapture(item).finally(() => {
+          ehfFastBipInFlight = Math.max(0, ehfFastBipInFlight - 1);
+          ehfFastPersistQueue();
+          ehfFastDrainQueue();
+        });
+      }
+    }
+
+    function processarBipagem(codigoDigitado) {
       if (!ehfBipSession?.session?.id || ehfBipSession.session.status !== 'ABERTA') {
         ehfOpenBipSessionModal();
+        tocarSomConfirmacaoLeitura(false);
         ehfBipToast('Inicie uma conferência antes de bipar.', true);
         return;
       }
       const input = document.getElementById('input-leitor-codigo');
-      if (input) input.disabled = true;
-      try {
-        // Pré-resolução rápida: usa cache, atraso do Mercado Livre e, somente quando
-        // necessário, consulta o pedido exato no Tiny antes de registrar a bipagem.
-        try {
-          ehfBipToast('Preparando etiqueta e produtos...');
-          await ehfApi('/api/packing/preparar', {
-            method: 'POST',
-            body: JSON.stringify({ codigo: codigoDigitado })
-          });
-        } catch (prepareError) {
-          // Durante a ordem de deploy o Gateway antigo pode não possuir a rota.
-          // Nesse único caso continuamos pela leitura tradicional.
-          const message = String(prepareError.message || '');
-          if (!/404|Cannot POST|N[ÃA]O ENCONTRAD/i.test(message)) throw prepareError;
-        }
-        const data = await ehfApi(`/api/bipagem/sessoes/${ehfBipSession.session.id}/scan`, {
-          method: 'POST',
-          body: JSON.stringify({ codigo: codigoDigitado, operator: nomeOperadorLocal })
-        });
-        ehfBipSession = data.session || ehfBipSession;
-        ehfRenderBipSession(ehfBipSession);
-        if (data.duplicate) {
-          tocarSomConfirmacaoLeitura(false);
-          ehfBipToast('Esta etiqueta já foi bipada nesta conferência.', true);
-          return;
-        }
-        const lookup = data.lookup || {};
-        const infoOriginal = identificarEtiqueta(codigoDigitado);
-        const actualChannel = data.actualChannel || {};
-        const infoEtiqueta = {
-          ...infoOriginal,
-          plataforma: actualChannel.platform || infoOriginal.plataforma,
-          canal: actualChannel.code || infoOriginal.canal,
-          canalNome: actualChannel.name || infoOriginal.canalNome,
-          idEtiqueta: lookup.codigoNormalizado || lookup.codigoLido || infoOriginal.idEtiqueta,
-          codigoRastreio: lookup.pedido?.codigoRastreamento || infoOriginal.codigoRastreio,
-          status: data.channelMatch ? 'Conferido' : 'Canal divergente',
-          observacao: data.channelMatch ? infoOriginal.observacao : `Selecionado ${data.expectedChannel?.name}; identificado ${actualChannel.name || 'outro canal'}`
-        };
-        const destino = lookup.lojaKey
-          ? { lojaKey: lookup.lojaKey, lojaNome: lookup.lojaNome || lookup.lojaKey, canalEsperado: ehfBipSession.session.channel_name, esperado: 0, bipado: 0, restante: 0 }
-          : escolherLojaParaBipagem(infoEtiqueta);
-        const agora = Date.now();
-        const novaBipagemRef = push(bipagemRef);
-        const payloadBipagem = {
-          codigo: codigoDigitado,
-          codigoLimpo: infoEtiqueta.codigoLimpo || lookup.codigoNormalizado || codigoDigitado,
-          plataforma: infoEtiqueta.plataforma,
-          canal: infoEtiqueta.canal,
-          canalNome: infoEtiqueta.canalNome,
-          canalEsperado: ehfBipSession.session.channel_name,
-          lojaKey: destino.lojaKey,
-          lojaNome: destino.lojaNome,
-          esperadoCanalLoja: destino.esperado,
-          bipadoAntesCanalLoja: destino.bipado,
-          restanteAntesCanalLoja: destino.restante,
-          idEtiqueta: infoEtiqueta.idEtiqueta,
-          codigoRastreio: infoEtiqueta.codigoRastreio,
-          tipo: infoEtiqueta.tipo,
-          observacao: infoEtiqueta.observacao,
-          status: infoEtiqueta.status,
-          operador: nomeOperadorLocal,
-          coletor: ehfBipSession.session.collector_name,
-          sessaoBipagemId: ehfBipSession.session.id,
-          pedidoTiny: lookup.pedido?.numero || '',
-          pedidoMarketplace: lookup.pedido?.numeroEcommerce || '',
-          totalUnidades: Number(lookup.totalUnidades || 0),
-          horario: formatHorarioBrasilia(new Date(), true),
-          horarioCompleto: formatHorarioBrasilia(new Date(), true),
-          ts: agora
-        };
-        await set(novaBipagemRef, payloadBipagem).catch(() => {});
-        tocarSomConfirmacaoLeitura(data.channelMatch !== false);
-        const corStatus = data.channelMatch !== false ? '#5bae5f' : '#ef4444';
-        set(alertaBroadcastRef, { txt: `O operador <b>${nomeOperadorLocal}</b> bipou: <b>${payloadBipagem.lojaNome}</b> — <b>${payloadBipagem.canalEsperado}</b> <span style="color:${corStatus};">(${payloadBipagem.status})</span><br>Pedido: <b>${payloadBipagem.pedidoMarketplace || payloadBipagem.pedidoTiny || '-'}</b> · Código: <b>${payloadBipagem.idEtiqueta || payloadBipagem.codigoRastreio || codigoDigitado}</b>`, ts: agora });
-        ehfBipToast(`${payloadBipagem.lojaNome} · pedido ${payloadBipagem.pedidoMarketplace || payloadBipagem.pedidoTiny || 'localizado'} · ${payloadBipagem.totalUnidades} unidade(s)`);
-      } catch (error) {
-        const detail = error.data?.session;
-        if (detail) ehfRenderBipSession(detail);
+      const rawCode = String(codigoDigitado || '').trim();
+      const normalized = limparCodigoBipado(rawCode);
+      if (input) { input.value = ''; input.focus(); }
+      if (!normalized) return;
+
+      if (ehfFastBipSeen.has(normalized)) {
         tocarSomConfirmacaoLeitura(false);
-        ehfBipToast(error.message || 'Etiqueta não localizada.', true);
-      } finally {
-        if (input) { input.disabled = false; input.value = ''; input.focus(); }
+        ehfBipToast(`Duplicado: ${normalized} já foi bipado hoje.`, true);
+        return;
       }
+
+      // A partir daqui a leitura física está aceita. Nada de Tiny/planilha bloqueia o leitor.
+      ehfFastBipSeen.add(normalized);
+      const info = identificarEtiqueta(rawCode);
+      const novaBipagemRef = push(bipagemRef);
+      const firebaseKey = novaBipagemRef.key || '';
+      const optimistic = ehfFastOptimisticPayload(rawCode, normalized, info, firebaseKey);
+      set(novaBipagemRef, optimistic).catch(()=>{});
+      tocarSomConfirmacaoLeitura(true);
+
+      const item = {
+        code: rawCode,
+        normalized,
+        sessionId: Number(ehfBipSession.session.id),
+        operator: nomeOperadorLocal,
+        capturedAt: new Date().toISOString(),
+        firebaseKey,
+        optimistic,
+        attempts: 0,
+        nextAt: 0
+      };
+      ehfFastBipQueue.push(item);
+      ehfFastPersistQueue();
+      ehfFastDrainQueue();
+      ehfBipToast(`Bipado: ${normalized} · salvo, identificando em segundo plano.`);
     }
 
     function garantirCabecalhoTabelaBipagem() {
@@ -1571,12 +1365,8 @@
       if (!painel) return;
 
       const esconderNaBipagem = document.body.classList.contains('ehf-bipagem-ativa') || bipagemEstaAtiva();
-      painel.style.setProperty('display', esconderNaBipagem ? 'none' : 'flex', 'important');
-      painel.style.setProperty('visibility', esconderNaBipagem ? 'hidden' : 'visible', 'important');
-      painel.style.setProperty('pointer-events', esconderNaBipagem ? 'none' : 'auto', 'important');
+      painel.style.display = esconderNaBipagem ? 'none' : '';
     }
-
-    window.ehfAtualizarVisibilidadePainelProducao = atualizarVisibilidadePainelProducao;
 
     function atualizarVisibilidadeResumoRapidoBipagem() {
       const painel = document.getElementById('bip-resumo-rapido-flutuante');
@@ -1668,7 +1458,7 @@
       totalBipadosFisico = 0;
       let bipesNaUltimaHora = 0;
       const umaHoraAtras = Date.now() - (60 * 60 * 1000);
-      const listaOrdenada = dados ? Object.values(dados).sort((a, b) => Number(b.ts || 0) - Number(a.ts || 0)) : [];
+      const listaOrdenada = dados ? Object.entries(dados).map(([firebaseKey, value]) => ({ ...(value || {}), _firebaseKey: firebaseKey })).sort((a, b) => Number(b.ts || 0) - Number(a.ts || 0)) : [];
       ehfBipagensCache = listaOrdenada.map(b => {
         if (!b.canalNome || b.canalNome === "Desconhecido" || b.plataforma === "Desconhecida") {
           const reprocessado = identificarEtiqueta(b.codigo || b.codigoLimpo || "");
@@ -1678,6 +1468,8 @@
       });
       totalBipadosFisico = ehfBipagensCache.length;
       ehfBipagensCache.forEach(b => {
+        const seenCode = String(b.codigoLimpo || b.codigo || '').trim();
+        if (seenCode) ehfFastBipSeen.add(seenCode);
         if (b.ts && b.ts >= umaHoraAtras) bipesNaUltimaHora++;
         const lojaNome = b.lojaNome || NOMES_LOJAS_BIPAGEM[b.lojaKey] || "Não localizada";
         const plataforma = b.plataforma || "Desconhecida";
@@ -1859,185 +1651,6 @@
       return (h * 60) + m;
     }
 
-    function minutesToTime(totalMinutes) {
-      if (!Number.isFinite(totalMinutes)) return '';
-      const normalized = ((Math.round(totalMinutes) % 1440) + 1440) % 1440;
-      const h = String(Math.floor(normalized / 60)).padStart(2, '0');
-      const m = String(normalized % 60).padStart(2, '0');
-      return `${h}:${m}`;
-    }
-
-    function normalizarHorarioHHMM(value) {
-      const minutos = timeToMinutes(value);
-      return minutos === null ? '' : minutesToTime(minutos);
-    }
-
-    function normalizarHorarioDigitavel(value) {
-      const raw = String(value || '').trim();
-      if (!raw) return { ok: true, value: '', empty: true };
-
-      const somenteDigitos = raw.replace(/\D/g, '');
-
-      // Aceita digitação simples: 8 => 08:00, 13 => 13:00, 930 => 09:30, 1530 => 15:30.
-      if (/^\d{1,4}$/.test(somenteDigitos) && raw.replace(/\d/g, '') === '') {
-        let h = 0;
-        let m = 0;
-
-        if (somenteDigitos.length <= 2) {
-          h = Number(somenteDigitos);
-          m = 0;
-        } else if (somenteDigitos.length === 3) {
-          h = Number(somenteDigitos.slice(0, 1));
-          m = Number(somenteDigitos.slice(1));
-        } else {
-          h = Number(somenteDigitos.slice(0, 2));
-          m = Number(somenteDigitos.slice(2));
-        }
-
-        if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
-          return { ok: true, value: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`, empty: false };
-        }
-
-        return { ok: false, value: '', empty: false };
-      }
-
-      const normalizado = normalizarHorarioHHMM(raw);
-      return normalizado ? { ok: true, value: normalizado, empty: false } : { ok: false, value: '', empty: false };
-    }
-
-    function calcularAlarmeUmaHoraAntes(horarioLimite) {
-      const minutos = timeToMinutes(horarioLimite);
-      if (minutos === null) return '';
-      return minutesToTime(minutos - ML_ALARM_OFFSET_MINUTES);
-    }
-
-    function getHorarioAlarmeTask(task) {
-      if (!task) return '';
-
-      // Se o operador apagou manualmente o alarme, respeita vazio.
-      if (task.alarmManual) {
-        return normalizarHorarioHHMM(task.alarmTime || '');
-      }
-
-      return normalizarHorarioHHMM(task.alarmTime || '') || calcularAlarmeUmaHoraAntes(task.time || '') || normalizarHorarioHHMM(task.time || '');
-    }
-
-    function atualizarAlarmeAutomatico(task, force = false) {
-      if (!task || task.semHorario) return false;
-      const auto = calcularAlarmeUmaHoraAntes(task.time || '');
-      if (!auto) return false;
-      // Se está manual, inclusive manual em branco, não sobrescreve.
-      if (!force && task.alarmManual) return false;
-      const mudou = task.alarmTime !== auto || task.alarmOffsetMinutes !== ML_ALARM_OFFSET_MINUTES;
-      task.alarmTime = auto;
-      task.alarmOffsetMinutes = ML_ALARM_OFFSET_MINUTES;
-      task.alarmManual = false;
-      task.alarmFonte = 'AUTO_ML_MENOS_1H';
-      return mudou;
-    }
-
-    function aplicarHorarioLimiteTask(task, horario, origem = 'manual', options = {}) {
-      if (!task || task.semHorario) return false;
-      const normalizado = normalizarHorarioHHMM(horario);
-      if (!normalizado) return false;
-
-      const manual = origem === 'manual';
-      if (!manual && task.deadlineManual && !options.force) return false;
-
-      const mudou = task.time !== normalizado;
-      task.time = normalizado;
-      task.mlDeadlineTime = origem === 'mercado_livre' ? normalizado : (task.mlDeadlineTime || '');
-      if (manual) task.deadlineManual = true;
-      else task.deadlineManual = false;
-
-      const mudouAlarme = atualizarAlarmeAutomatico(task, !!options.forceAlarm);
-      if (mudou || mudouAlarme) limparAlarmeTask(task.id);
-      return mudou || mudouAlarme;
-    }
-
-    function menorHorarioValido(horarios) {
-      const minutos = (horarios || [])
-        .map(timeToMinutes)
-        .filter(v => v !== null)
-        .sort((a, b) => a - b);
-      return minutos.length ? minutesToTime(minutos[0]) : '';
-    }
-
-    function extrairHorarioCampo(obj, campos) {
-      for (const campo of campos) {
-        const valor = campo.split('.').reduce((acc, key) => acc && acc[key] !== undefined ? acc[key] : undefined, obj);
-        const horario = normalizarHorarioHHMM(valor);
-        if (horario) return horario;
-      }
-      return '';
-    }
-
-    function extrairHorarioModoML(account, modo) {
-      const hoje = account?.enviosHoje || account?.today || account?.tabToday || account?.TAB_TODAY || {};
-      const bloco = hoje?.[modo] || hoje?.[String(modo || '').toUpperCase()] || account?.[modo] || {};
-      return extrairHorarioCampo(bloco, ['cutoff', 'cutoffTime', 'deadline', 'deadlineTime', 'horario', 'time', 'until', 'limite', 'horarioLimite']) ||
-        extrairHorarioCampo(account, modo === 'coleta'
-          ? ['cutoff', 'cutoffTime', 'coleta.cutoff', 'coleta.cutoffTime', 'agencyCutoff', 'horarioColeta', 'horarioLimite']
-          : ['flex.cutoff', 'flex.cutoffTime', 'flexDeadline', 'horarioFlex']);
-    }
-
-    function aplicarAlarmesDoMercadoLivre(data) {
-      const accounts = Array.isArray(data?.accounts) ? data.accounts : [];
-      if (!accounts.length) return false;
-
-      const mapContaTask = {
-        comercio: 'comercio',
-        ehf_comercio: 'comercio',
-        suprimentos: 'suprimentos',
-        ehf_suprimentos: 'suprimentos',
-        distribuidora: 'distribuidora',
-        ehf_distribuidora: 'distribuidora',
-        ekn: 'ekn'
-      };
-
-      let mudou = false;
-      const horariosColeta = [];
-      const horariosFlex = [];
-
-      accounts.forEach(account => {
-        const rawKey = String(account?.key || account?.account || account?.id || account?.label || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
-        const taskId = mapContaTask[rawKey] || mapContaTask[rawKey.replace(/^ehf_/, '')];
-        const horarioColeta = extrairHorarioModoML(account, 'coleta');
-        const horarioFlex = extrairHorarioModoML(account, 'flex');
-
-        if (horarioColeta) horariosColeta.push(horarioColeta);
-        if (horarioFlex) horariosFlex.push(horarioFlex);
-
-        if (taskId && horarioColeta) {
-          const task = getTaskById(taskId);
-          mudou = aplicarHorarioLimiteTask(task, horarioColeta, 'mercado_livre') || mudou;
-        }
-      });
-
-      const coletaMaster = getTaskById('mercado_envios_coleta');
-      const horarioColetaMaster = menorHorarioValido(horariosColeta);
-      if (horarioColetaMaster) mudou = aplicarHorarioLimiteTask(coletaMaster, horarioColetaMaster, 'mercado_livre') || mudou;
-
-      const flexMaster = getTaskById('mercado_envios_flex');
-      const horarioFlexMaster = menorHorarioValido(horariosFlex);
-      if (horarioFlexMaster) mudou = aplicarHorarioLimiteTask(flexMaster, horarioFlexMaster, 'mercado_livre') || mudou;
-
-      ['mercado_livre_remessa_1', 'mercado_livre_remessa_2', 'shopee_remessa_1', 'shopee_remessa_2'].forEach(id => {
-        const task = getTaskById(id);
-        if (task && task.time && !task.alarmManual) mudou = atualizarAlarmeAutomatico(task, false) || mudou;
-      });
-
-      if (mudou) {
-        renderEstructuralHTML();
-        pushStateToFirebase();
-        verificarAlarmesDePrazo();
-      }
-
-      return mudou;
-    }
-
-    window.ehfAplicarAlarmesDoMercadoLivre = aplicarAlarmesDoMercadoLivre;
-
     function taskTemAlgumaCaixaMarcada(task) {
       // Finalizado agora é apenas registro interno de produção.
       // Ele NÃO encerra o alarme de saída do galpão.
@@ -2058,9 +1671,9 @@
           return false;
         }
 
-        const alarmeMinutos = timeToMinutes(getHorarioAlarmeTask(t));
-        if (alarmeMinutos === null) return false;
-        if (minutosAgora < alarmeMinutos) return false;
+        const limiteMinutos = timeToMinutes(t.time);
+        if (limiteMinutos === null) return false;
+        if (minutosAgora < limiteMinutos) return false;
 
         const estado = alarmState[t.id] || {};
         if (estado.snoozeUntil && agoraMs < estado.snoozeUntil) return false;
@@ -2076,11 +1689,8 @@
       alarmState[atrasada.id] = alarmState[atrasada.id] || {};
       alarmState[atrasada.id].lastAlarmAt = agoraMs;
 
-      const horarioAlarme = getHorarioAlarmeTask(atrasada);
-      const limiteMinutos = timeToMinutes(atrasada.time);
-      const prazoVencido = limiteMinutos !== null && minutosAgora >= limiteMinutos;
       executarAlarmeVisualESonoroLocal(
-        `${prazoVencido ? 'Prazo vencido' : 'Alarme de saída'}: <b>${atrasada.name}</b>. Alarme programado para <b>${horarioAlarme || '--:--'}</b>${atrasada.time ? `, prazo limite <b>${atrasada.time}</b>` : ''}. Ainda não foi marcado como Coletado ou Enviado.`,
+        `Prazo vencido: <b>${atrasada.name}</b> tinha limite às <b>${atrasada.time}</b> e ainda não foi marcado como Coletado ou Enviado.`,
         atrasada.id
       );
     }
@@ -2115,16 +1725,15 @@
     }
 
     function criarTaskPadrao(config) {
-      const horarioPadrao = config.defaultTime || '';
       return {
         id: config.id,
         name: config.name,
-        time: horarioPadrao,
-        alarmTime: calcularAlarmeUmaHoraAntes(horarioPadrao),
-        alarmManual: false,
-        deadlineManual: false,
-        alarmOffsetMinutes: ML_ALARM_OFFSET_MINUTES,
-        mlDeadlineTime: '',
+        time: config.defaultTime || '',
+        // autoTime undefined = elegível pra receber o horário automático do
+        // Mercado Livre (linhas comercio/suprimentos/ekn/distribuidora).
+        // Vira false assim que o operador edita o campo manualmente, pra
+        // não ser sobrescrito no próximo ciclo de sincronização.
+        autoTime: undefined,
         coletado: false,
         enviado: false,
         finalizado: false,
@@ -2146,15 +1755,17 @@
         }
 
         task.name = config.name;
-        task.semHorario = !!config.semHorario;
+        // CORREÇÃO: antes esta linha rodava em TODO render (garantirTasksPadrao
+        // é chamada a cada renderEstructuralHTML) e resetava semHorario pro
+        // valor estático do config sempre — isso apagava, na hora seguinte,
+        // qualquer marcação manual de "sem horário hoje" feita pelo operador
+        // (checkbox adicionado abaixo). Agora só define o padrão na criação
+        // da task (dentro do criarTaskPadrao acima); depois disso o valor
+        // pertence ao operador/estado salvo.
         task.remessa = config.remessa || '';
 
         if (!task.time && config.defaultTime) {
           task.time = config.defaultTime;
-        }
-
-        if (!task.alarmManual && !task.alarmTime && task.time) {
-          atualizarAlarmeAutomatico(task, true);
         }
       });
 
@@ -2178,9 +1789,6 @@
 
       const inputTime = document.getElementById(`time-${taskId}`);
       if (inputTime) task.time = inputTime.value || '';
-
-      const inputAlarm = document.getElementById(`alarm-${taskId}`);
-      if (inputAlarm) task.alarmTime = inputAlarm.value || '';
     }
 
     function aplicarStatusExclusivoTask(task, status, checked) {
@@ -2224,7 +1832,8 @@
 
         if (!task || task.semHorario) return;
 
-        aplicarHorarioLimiteTask(task, horario || '', 'manual', { forceAlarm: false });
+        task.time = horario || '';
+        limparAlarmeTask(id);
       });
     }
 
@@ -2333,7 +1942,12 @@
             timeInput.addEventListener('change', () => {
               const horario = timeInput.value || '';
 
-              aplicarHorarioLimiteTask(t, horario, 'manual', { forceAlarm: false });
+              t.time = horario;
+              // Edição manual do operador sempre vence: marca autoTime=false
+              // pra essa linha parar de ser sobrescrita pelo sync automático
+              // do horário do Mercado Livre (ver aplicarHorariosMercadoLivre).
+              if (ML_AUTO_TIME_ROW_IDS.includes(t.id)) t.autoTime = false;
+              limparAlarmeTask(t.id);
 
               if (GROUP_TARGETS[t.id]) {
                 aplicarHorarioGrupo(t.id, horario);
@@ -2358,119 +1972,21 @@
           const labelCo = criarCheckboxControle(t, 'coletado', 'Coletado', config, false);
           const labelEn = criarCheckboxControle(t, 'enviado', 'Enviado', config, false);
           const labelFi = criarCheckboxControle(t, 'finalizado', 'Finalizado', config, true);
-
-          ehfGarantirEstiloAlarmesML();
+          const labelSh = criarCheckboxSemHorario(t);
 
           if (timeInput) {
-            // v4.2.10: o prazo ML continua salvo internamente em t.time e alimentado pelo Mercado Livre,
-            // mas não é mais exibido/editado no painel. O operador vê e edita somente o horário do alarme.
-            const alarmWrap = document.createElement('span');
-            alarmWrap.className = 'cp-time-block alarm only-alarm';
-            const alarmLabel = document.createElement('small');
-            alarmLabel.textContent = 'Alarme';
-            const alarmInput = document.createElement('input');
-            alarmInput.type = 'text';
-            alarmInput.inputMode = 'numeric';
-            alarmInput.autocomplete = 'off';
-            alarmInput.placeholder = '--:--';
-            alarmInput.maxLength = 5;
-            // Manual em branco deve aparecer em branco; automático aparece calculado.
-            alarmInput.value = t.alarmManual ? (t.alarmTime || '') : getHorarioAlarmeTask(t);
-            alarmInput.id = `alarm-${t.id}`;
-            let alarmSaveTimer = null;
-
-            function salvarDigitacaoAlarme(renderDepois = false) {
-              const raw = alarmInput.value || '';
-              const parsed = normalizarHorarioDigitavel(raw);
-              if (!parsed.ok) {
-                alarmInput.classList.add('input-invalid');
-                return false;
-              }
-
-              alarmInput.classList.remove('input-invalid');
-              const valorFinal = parsed.value;
-              const mudou = (t.alarmTime || '') !== valorFinal || !t.alarmManual;
-              t.alarmTime = valorFinal;
-              t.alarmManual = true;
-              t.alarmFonte = valorFinal ? 'MANUAL' : 'MANUAL_VAZIO';
-              if (!valorFinal) t.alarmOffsetMinutes = 0;
-              limparAlarmeTask(t.id);
-
-              if (valorFinal && raw !== valorFinal && (raw.length >= 3 || renderDepois)) {
-                alarmInput.value = valorFinal;
-              }
-
-              if (mudou) {
-                pushStateToFirebase();
-                verificarAlarmesDePrazo();
-              }
-
-              return true;
-            }
-
-            alarmInput.addEventListener('input', () => {
-              const raw = alarmInput.value || '';
-
-              // Permite apagar e salvar vazio imediatamente.
-              if (!raw.trim()) {
-                if (alarmSaveTimer) clearTimeout(alarmSaveTimer);
-                alarmInput.classList.remove('input-invalid');
-                salvarDigitacaoAlarme(false);
-                return;
-              }
-
-              // Quando digita 930 ou 1530, salva automaticamente sem precisar sair do campo.
-              if (alarmSaveTimer) clearTimeout(alarmSaveTimer);
-              const onlyDigits = raw.replace(/\D/g, '');
-              const delay = onlyDigits.length >= 3 || raw.includes(':') ? 350 : 900;
-              alarmSaveTimer = setTimeout(() => salvarDigitacaoAlarme(false), delay);
-            });
-
-            alarmInput.addEventListener('blur', () => {
-              if (alarmSaveTimer) clearTimeout(alarmSaveTimer);
-              const ok = salvarDigitacaoAlarme(true);
-              if (ok) renderEstructuralHTML();
-            });
-
-            alarmInput.addEventListener('keydown', (ev) => {
-              if (ev.key === 'Enter') {
-                ev.preventDefault();
-                if (alarmSaveTimer) clearTimeout(alarmSaveTimer);
-                const ok = salvarDigitacaoAlarme(true);
-                if (ok) renderEstructuralHTML();
-              }
-            });
-            alarmWrap.appendChild(alarmLabel);
-            alarmWrap.appendChild(alarmInput);
-            controls.appendChild(alarmWrap);
-
-            const autoBtn = document.createElement('button');
-            autoBtn.type = 'button';
-            autoBtn.className = 'cp-auto-alarm-btn';
-            autoBtn.textContent = 'Auto -1h';
-            autoBtn.title = t.time ? `Usar uma hora antes do prazo do Mercado Livre (${t.time})` : 'Prazo Mercado Livre ainda não carregado';
-            autoBtn.disabled = !t.time;
-            autoBtn.addEventListener('click', () => {
-              t.alarmManual = false;
-              atualizarAlarmeAutomatico(t, true);
-              limparAlarmeTask(t.id);
-              renderEstructuralHTML();
-              pushStateToFirebase();
-              verificarAlarmesDePrazo();
-            });
-            controls.appendChild(autoBtn);
+            controls.appendChild(timeInput);
           } else if (timePlaceholder) {
             controls.appendChild(timePlaceholder);
           }
 
+          controls.appendChild(labelSh);
           controls.appendChild(labelCo);
           controls.appendChild(labelEn);
           controls.appendChild(labelFi);
 
           li.appendChild(nameDiv);
           li.appendChild(controls);
-
-          // v4.2.10: removido texto lateral de prazo/alarme/manual para deixar cada linha limpa.
 
           ul.appendChild(li);
         });
@@ -2479,6 +1995,108 @@
       });
 
       corrigirTextoSuprimentos();
+    }
+
+    // Checkbox pra o operador marcar manualmente "Não tem" numa linha — ou
+    // seja, não tem pacote/pedido a ser feito desse canal hoje (não é sobre
+    // desconhecer o horário, é sobre não ter volume pra rodar). Some o input
+    // de horário (ver `if (!t.semHorario)` acima) e some do cálculo de
+    // alarme, já que taskTemAlgumaCaixaMarcada/timeToMinutes tratam time
+    // vazio como "sem prazo a verificar". Mantido o nome interno do campo
+    // (semHorario) pra não quebrar o estado já salvo no Firebase — só o
+    // texto visível pro operador mudou.
+    function criarCheckboxSemHorario(task) {
+      const label = document.createElement('label');
+      label.className = 'checkbox-inline cp-sem-horario';
+
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.checked = !!task.semHorario;
+      box.id = `sem-horario-${task.id}`;
+
+      box.addEventListener('change', () => {
+        task.semHorario = box.checked;
+        if (task.semHorario) {
+          task.time = '';
+        }
+
+        limparAlarmeTask(task.id);
+        renderEstructuralHTML();
+
+        set(alertaBroadcastRef, {
+          txt: `O operador <b>${nomeOperadorLocal}</b> ${task.semHorario ? 'marcou' : 'desmarcou'} <b>${task.name}</b> como <b>Não tem</b> (sem pacotes a serem feitos hoje).`,
+          ts: Date.now()
+        });
+
+        pushStateToFirebase();
+        verificarAlarmesDePrazo();
+      });
+
+      label.appendChild(box);
+      label.appendChild(document.createTextNode('Não tem'));
+
+      return label;
+    }
+
+    function subtrairMinutosDeHorario(horario, minutos) {
+      const total = timeToMinutes(horario);
+      if (total === null) return '';
+      const ajustado = ((total - minutos) % 1440 + 1440) % 1440;
+      const h = String(Math.floor(ajustado / 60)).padStart(2, '0');
+      const m = String(ajustado % 60).padStart(2, '0');
+      return `${h}:${m}`;
+    }
+
+    // Puxa o horário-limite de cada conta (comercio/suprimentos/ekn/
+    // distribuidora) direto do cartão real do Mercado Livre ("Agência /
+    // Coleta até HH:MM", rota /api/mercadolivre/horarios — a mesma fonte
+    // do painel de cards mais abaixo na página) e aplica 1h de folga pra
+    // trás. Só sobrescreve linhas que o operador não editou manualmente
+    // (autoTime !== false) e que não estão marcadas como "sem horário".
+    async function aplicarHorariosMercadoLivre() {
+      try {
+        const resp = await fetch(EHF_WORKER_BASE + '/api/mercadolivre/horarios?_ts=' + Date.now(), {
+          cache: 'no-store',
+          headers: { 'Accept': 'application/json' }
+        });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (!data || data.ok === false || !Array.isArray(data.accounts)) return;
+
+        let mudou = false;
+
+        data.accounts.forEach(account => {
+          const key = String(account?.key || '').toLowerCase().trim();
+          if (!ML_AUTO_TIME_ROW_IDS.includes(key)) return;
+
+          const task = getTaskById(key);
+          if (!task || task.semHorario || task.autoTime === false) return;
+
+          const cutoff = String(account?.cutoff || '').trim();
+          const novoHorario = cutoff ? subtrairMinutosDeHorario(cutoff, ML_AUTO_TIME_BUFFER_MINUTES) : '';
+
+          if (novoHorario && novoHorario !== task.time) {
+            task.time = novoHorario;
+            task.autoTime = true;
+            limparAlarmeTask(task.id);
+            mudou = true;
+          }
+        });
+
+        if (mudou) {
+          renderEstructuralHTML();
+          pushStateToFirebase();
+          verificarAlarmesDePrazo();
+        }
+      } catch (err) {
+        console.warn('Falha ao sincronizar horários do Mercado Livre no painel de alarme:', err);
+      }
+    }
+
+    if (!window.ehfMlAutoTimeEngineStarted) {
+      window.ehfMlAutoTimeEngineStarted = true;
+      setInterval(() => aplicarHorariosMercadoLivre(), 60000);
+      setTimeout(() => aplicarHorariosMercadoLivre(), 4000);
     }
 
     function criarCheckboxControle(task, campo, texto, config, greenLabel) {
@@ -2546,11 +2164,7 @@
         estadoParaSalvar.lojas[t.id] = {
           name: t.name,
           time: t.time || '',
-          alarmTime: t.alarmTime || '',
-          alarmManual: !!t.alarmManual,
-          deadlineManual: !!t.deadlineManual,
-          alarmOffsetMinutes: Number(t.alarmOffsetMinutes || ML_ALARM_OFFSET_MINUTES),
-          mlDeadlineTime: t.mlDeadlineTime || '',
+          autoTime: t.autoTime === undefined ? null : !!t.autoTime,
           coletado: !!t.coletado,
           enviado: !!t.enviado,
           finalizado: !!t.finalizado,
@@ -2605,16 +2219,17 @@
             id: config.id,
             name: config.name,
             time: salvo ? (salvo.time || config.defaultTime || '') : (config.defaultTime || ''),
-            alarmTime: salvo ? (salvo.alarmManual ? (salvo.alarmTime || '') : (salvo.alarmTime || calcularAlarmeUmaHoraAntes(salvo.time || config.defaultTime || ''))) : calcularAlarmeUmaHoraAntes(config.defaultTime || ''),
-            alarmManual: salvo ? !!salvo.alarmManual : false,
-            deadlineManual: salvo ? !!salvo.deadlineManual : false,
-            alarmOffsetMinutes: salvo ? Number(salvo.alarmOffsetMinutes || ML_ALARM_OFFSET_MINUTES) : ML_ALARM_OFFSET_MINUTES,
-            mlDeadlineTime: salvo ? (salvo.mlDeadlineTime || '') : '',
+            // autoTime: se o estado salvo não trouxer o campo (compatibilidade
+            // com sessões antigas), assume undefined (elegível pra auto-sync).
+            autoTime: (salvo && salvo.autoTime !== undefined && salvo.autoTime !== null) ? !!salvo.autoTime : undefined,
             coletado: salvo ? !!salvo.coletado : false,
             enviado: salvo ? !!salvo.enviado : false,
             finalizado: salvo ? !!salvo.finalizado : false,
             finalizadoEm: salvo ? (salvo.finalizadoEm || '') : '',
-            semHorario: !!config.semHorario,
+            // CORREÇÃO: antes ignorava salvo.semHorario e sempre usava o
+            // config estático — a marcação manual do operador não sobrevivia
+            // a um reload da página. Agora, se veio salva, ela manda.
+            semHorario: salvo && salvo.semHorario !== undefined ? !!salvo.semHorario : !!config.semHorario,
             remessa: config.remessa || (salvo ? (salvo.remessa || '') : '')
           });
         });
@@ -2674,7 +2289,8 @@ onValue(alertaBroadcastRef, (snapshot) => {
 
       localTasks.forEach(x => {
         if (!x.semHorario) {
-          aplicarHorarioLimiteTask(x, t, 'manual', { forceAlarm: false });
+          x.time = t;
+          limparAlarmeTask(x.id);
         }
       });
 
@@ -2701,9 +2317,9 @@ onValue(alertaBroadcastRef, (snapshot) => {
     };
   
 
-/* ========== V3.3.1 — HORÁRIOS E CONTAGEM EXATA DO MERCADO LIVRE ========== */
+/* ========== V3.4.4 — HORÁRIOS, CONTAGEM E SYNC IDEMPOTENTE DO MERCADO LIVRE ========== */
 (function(){
-  const esc=(value)=>String(value??'').replace(/[&<>"']/g,(char)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':'&quot;',"'":"&#39;"}[char]));
+  const esc=(value)=>String(value??'').replace(/[&<>"']/g,(char)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
   const base=String(window.EHF_API_BASE||'https://atendente-vesco-separacao.2cwhzy.easypanel.host').replace(/\/+$/,'');
   let loading=false;
 
@@ -2714,43 +2330,175 @@ onValue(alertaBroadcastRef, (snapshot) => {
 
   function modeDisplay(mode){
     const verified=Boolean(mode?.countVerified)&&mode?.totalPackages!==null&&mode?.totalPackages!==undefined;
-    const delayed=Number(mode?.delayedPackages||mode?.delayedOrders||0);
+    const delayedVerified=Boolean(mode?.delayedCountVerified)&&mode?.delayedPackages!==null&&mode?.delayedPackages!==undefined;
+    const delayed=delayedVerified?Number(mode.delayedPackages||0):null;
     const observed=Number(mode?.observedPackages||mode?.enumeratedPackages||0);
     return {
       verified,
       value:verified?String(Number(mode.totalPackages||0)):'—',
+      delayedVerified,
       delayed,
       observed
     };
   }
 
-  function pickTodayMode(account, key){
-    const today=account?.enviosHoje||account?.today||account?.tabToday||account?.TAB_TODAY||{};
-    const direct=today?.[key]||today?.[key.toUpperCase?.()]||null;
-    return direct||account?.[key]||{};
+  function queueCount(mode, aliases){
+    const normalizedQueue=mode?.queues||{};
+    for(const alias of aliases){
+      if(normalizedQueue[alias]!==undefined&&normalizedQueue[alias]!==null)return Number(normalizedQueue[alias]||0);
+    }
+    const source=mode?.declaredTaskCounts||mode?.taskCounts||{};
+    const entries=Object.entries(source);
+    for(const alias of aliases){
+      if(source[alias]!==undefined&&source[alias]!==null)return Number(source[alias]||0);
+    }
+    const normalizedAliases=aliases.map(value=>String(value).toUpperCase().replace(/[^A-Z0-9]/g,''));
+    for(const [key,value] of entries){
+      const normalized=String(key).toUpperCase().replace(/[^A-Z0-9]/g,'');
+      if(normalizedAliases.some(alias=>normalized.includes(alias)))return Number(value||0);
+    }
+    return null;
+  }
+
+  function queueRows(mode, modality){
+    const delayed=queueCount(mode,['atrasadas','TASK_DELAYED_TO_DISPATCH','DELAYEDTODISPATCH']);
+    const rows=modality==='FLEX'
+      ?[
+        ['Canceladas · não enviar',queueCount(mode,['canceladas','TASK_CANCELLED','TASK_CANCELED','CANCELLED','CANCELED']),'danger'],
+        ['Atrasadas · enviar',delayed,'danger'],
+        ['Etiquetas para imprimir',queueCount(mode,['etiquetas','TASK_READY_TO_PRINT','READYTOPRINT']),'warning'],
+        ['Reagendadas',queueCount(mode,['reagendadas','TASK_RESCHEDULED','RESCHEDULED','REAGENDADA']),'info'],
+        ['Prontas para enviar',queueCount(mode,['prontas','TASK_READY_TO_DISPATCH','READYTODISPATCH']),'success']
+      ]
+      :[
+        ['Canceladas · não enviar',queueCount(mode,['canceladas','TASK_CANCELLED','TASK_CANCELED','CANCELLED','CANCELED']),'danger'],
+        ['Atrasadas · enviar',delayed,'danger'],
+        ['NF-e para gerenciar',queueCount(mode,['nfe','TASK_INVOICES_TO_BE_MANAGED','INVOICESTOBEMANAGED']),'info'],
+        ['Etiquetas para imprimir',queueCount(mode,['etiquetas','TASK_READY_TO_PRINT','READYTOPRINT']),'warning'],
+        ['Prontas para enviar',queueCount(mode,['prontas','TASK_READY_TO_DISPATCH','READYTODISPATCH']),'success'],
+        ['Mensagens não lidas',queueCount(mode,['mensagens','UNREAD_MESSAGES','TASK_UNREAD_MESSAGES']),'info']
+      ];
+    return `<div class="ml-queue-list">${rows.map(([label,value,klass])=>{
+      const missing=value===null||value===undefined;
+      const numeric=missing?null:Number(value||0);
+      return `<div class="ml-queue-row ${klass}${numeric===0?' zero':''}"><span>${esc(label)}</span><strong>${missing?'—':numeric}</strong></div>`;
+    }).join('')}</div>`;
+  }
+
+  function copyIcon(){
+    return `<svg class="ml-copy-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 8.5V6.8c0-1 .8-1.8 1.8-1.8h6.4c1 0 1.8.8 1.8 1.8v6.4c0 1-.8 1.8-1.8 1.8h-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="5" y="9" width="10" height="10" rx="2" stroke="currentColor" stroke-width="1.8"/></svg>`;
+  }
+
+  function renderMode(mode, modality){
+    const view=modeDisplay(mode);
+    const name=modality==='FLEX'?'Flex':'Agência / Coleta';
+    const subtitle=modality==='FLEX'?'Envios Flex do dia':'Envios para agência/coleta';
+    const delayedText=view.delayedVerified?String(view.delayed):'—';
+    const delayZero=view.delayedVerified&&Number(view.delayed||0)===0;
+    return `<div class="ml-mode">
+      <div class="ml-mode-head">
+        <div class="ml-mode-name"><label>${name}</label><small>${subtitle}</small></div>
+        <div class="ml-mode-total"><small>Total</small><b>${view.value}</b></div>
+      </div>
+      <div class="ml-mode-delay${delayZero?' zero':''}"><span>Atrasados no cartão</span><strong>${delayedText}</strong></div>
+      ${view.verified?'':`<small class="ml-count-pending">Contador pendente · ${view.observed} registro(s) observado(s)</small>`}
+      ${queueRows(mode,modality)}
+    </div>`;
   }
 
   function renderAccount(account){
-    const flex=pickTodayMode(account,'flex');
-    const coleta=pickTodayMode(account,'coleta');
-    const entrega=pickTodayMode(account,'entregaPorConta');
-    const devolucoes=pickTodayMode(account,'devolucoes');
+    const flex=account.flex||{};
+    const coleta=account.coleta||{};
     const flexView=modeDisplay(flex);
     const coletaView=modeDisplay(coleta);
-    const entregaView=modeDisplay(entrega);
-    const devolucoesView=modeDisplay(devolucoes);
-    const hasExtra=(entregaView.verified&&Number(entrega.totalPackages||0)>0)||(devolucoesView.verified&&Number(devolucoes.totalPackages||0)>0);
     const complete=Boolean(account.complete&&flexView.verified&&coletaView.verified);
     const cutoff=fmtTime(account.cutoff);
+    const authCode=String(account.authorizationCode||'').trim();
+    const authStatus=String(account.authorizationCodeStatus||'').trim();
+    const accountError=String(account.error||flex.error||coleta.error||'').trim();
+    const codeTitle=String(account.authorizationCodeError||authStatus||'Código diário de autorização/devolução do Mercado Livre');
     return `<article class="ml-account-card">
       <div class="ml-account-title"><b>${esc(account.label||account.key)}</b><span class="${complete?'ok':'warn'}">${complete?'LEITURA COMPLETA':'VERIFICAR'}</span></div>
-      <div class="ml-cutoff"><small>Agência / Coleta até</small><strong class="${cutoff==='Não identificado'?'missing':''}">${esc(cutoff)}</strong></div>
+      ${accountError?`<div class="ml-account-error" title="${esc(accountError)}">${esc(accountError)}</div>`:''}
+      <div class="ml-cutoff"><small>Agência / Coleta até</small><strong class="${cutoff==='Não disponível no retorno'?'missing':''}">${esc(cutoff)}</strong></div>
+      <div class="ml-auth-code ${authCode?'':'missing'}" title="${esc(codeTitle)}">
+        <div class="ml-auth-code-info"><span>Código de devolução</span><b>${esc(authCode||'Não disponível')}</b></div>
+        <button class="ml-copy-code" type="button" data-ml-copy-code="${esc(authCode)}" ${authCode?'':'disabled'} aria-label="Copiar código de devolução ${esc(authCode)}">${copyIcon()}<span>Copiar</span></button>
+      </div>
       <div class="ml-mode-grid">
-        <div class="ml-mode"><label>Flex</label><b>${flexView.value}</b><em>${flexView.delayed} atrasado(s)</em>${flexView.verified?'':`<small class="ml-count-pending">contador pendente · ${flexView.observed} registro(s) lido(s)</small>`}</div>
-        <div class="ml-mode"><label>Agência / Coleta</label><b>${coletaView.value}</b><em>${coletaView.delayed} atrasado(s)</em>${coletaView.verified?'':`<small class="ml-count-pending">contador pendente · ${coletaView.observed} registro(s) lido(s)</small>`}</div>
-        ${hasExtra?`<div class="ml-mode"><label>Entrega por sua conta</label><b>${entregaView.value}</b><em class="warn">${entregaView.delayed} pendência(s)</em></div><div class="ml-mode"><label>Devoluções</label><b>${devolucoesView.value}</b><em class="warn">${devolucoesView.delayed} pendência(s)</em></div>`:''}
+        ${renderMode(flex,'FLEX')}
+        ${renderMode(coleta,'COLETA')}
       </div>
     </article>`;
+  }
+
+  async function getJson(path){
+    const separator=String(path).includes('?')?'&':'?';
+    const response=await fetch(base+path+separator+'_ts='+Date.now(),{
+      cache:'no-store',
+      headers:{'Accept':'application/json'}
+    });
+    const raw=await response.text();
+    let data={};
+    try{data=raw?JSON.parse(raw):{};}catch(_){throw new Error(`A rota ${path} devolveu uma resposta inválida.`);}
+    if(!response.ok)throw new Error(data?.error||data?.message||`Erro HTTP ${response.status} em ${path}`);
+    return data;
+  }
+
+  function writeHeaders(){
+    const headers={'Accept':'application/json','Content-Type':'application/json'};
+    const apiKey=localStorage.getItem('ehf_api_key')||'';
+    if(apiKey)headers['x-api-key']=apiKey;
+    return headers;
+  }
+
+  async function startAndWait(statusEl){
+    const before=await getJson('/api/sync/status');
+    const beforeId=Number(before?.mercadoLivre?.id||0);
+    const wasRunning=Boolean(before?.running?.ml);
+
+    const start=await fetch(base+'/api/sync/mercadolivre?_ts='+Date.now(),{
+      method:'POST',
+      cache:'no-store',
+      headers:writeHeaders(),
+      body:'{}'
+    });
+    const raw=await start.text();
+    let startData={};
+    try{startData=raw?JSON.parse(raw):{};}catch(_){throw new Error('A rota de atualização do Mercado Livre devolveu uma resposta inválida.');}
+
+    if(!start.ok&&start.status!==409){
+      const message=startData?.error==='API_KEY_INVALIDA'
+        ?'A API Key do painel não confere com a configurada no Easypanel.'
+        :(startData?.error||startData?.message||`Erro HTTP ${start.status} ao iniciar o Mercado Livre.`);
+      throw new Error(message);
+    }
+
+    let targetId=Number(startData?.current?.id||0);
+    if(!targetId&&(startData?.alreadyRunning||start.status===409)&&wasRunning)targetId=beforeId;
+    const startedAt=Date.now();
+    const deadline=startedAt+300000;
+
+    while(Date.now()<deadline){
+      await new Promise(resolve=>setTimeout(resolve,1500));
+      const syncData=await getJson('/api/sync/status');
+      const row=syncData?.mercadoLivre||null;
+      const rowId=Number(row?.id||0);
+
+      if(rowId>beforeId)targetId=rowId;
+      if(!targetId&&(startData?.alreadyRunning||start.status===409)&&rowId===beforeId)targetId=rowId;
+
+      const elapsed=Math.max(1,Math.round((Date.now()-startedAt)/1000));
+      statusEl.textContent=`Mercado Livre em processamento: ${elapsed}s. Aguardando todas as contas terminarem...`;
+
+      const finished=targetId>0&&rowId===targetId&&row?.status&&row.status!=='RUNNING'&&Boolean(row.finished_at);
+      if(!finished)continue;
+
+      if(row.status==='ERROR')throw new Error(row.error||'A leitura do Mercado Livre terminou com erro.');
+      return row;
+    }
+
+    throw new Error('O Mercado Livre não confirmou a conclusão da leitura dentro de 5 minutos.');
   }
 
   async function load(force=false){
@@ -2761,68 +2509,150 @@ onValue(alertaBroadcastRef, (snapshot) => {
     const status=document.getElementById('ml-deadline-status');
     const badge=document.getElementById('ml-deadline-source');
     const button=document.getElementById('btn-refresh-ml-deadlines');
-    if(button)button.disabled=true;
+    if(button){
+      button.disabled=true;
+      if(force)button.textContent='Atualizando...';
+    }
+
     try{
-      if(!force){
+      let finalRun=null;
+
+      if(force){
+        badge.textContent='PROCESSANDO';
+        badge.className='ml-source-badge warn';
+        status.textContent='Leitura iniciada. Atualizando os cartões de todas as contas...';
+        status.className='ml-deadline-status warn';
+        finalRun=await startAndWait(status);
+      }else{
         try{
-          const syncResponse=await fetch(base+'/api/sync/status?ts='+Date.now(),{cache:'no-store'});
-          const syncData=await syncResponse.json();
+          const syncData=await getJson('/api/sync/status');
           if(syncData?.running?.ml){
-            status.textContent='Mercado Livre em processamento paralelo. Os totais atuais serão substituídos juntos quando todas as contas terminarem.';
+            status.textContent='Mercado Livre em processamento paralelo. Os números abaixo são do último snapshot confirmado.';
             status.className='ml-deadline-status warn';
             badge.textContent='PROCESSANDO';
             badge.className='ml-source-badge warn';
-            return;
           }
-        }catch(_){ }
+        }catch(_){}
       }
-      if(force){
-        const headers={'Content-Type':'application/json'};
-        const apiKey=localStorage.getItem('ehf_api_key')||'';
-        if(apiKey)headers['x-api-key']=apiKey;
-        const start=await fetch(base+'/api/sync/mercadolivre',{method:'POST',headers});
-        if(!start.ok&&start.status!==409)throw new Error('Não foi possível iniciar a leitura do Mercado Livre.');
-        status.textContent='Leitura iniciada. Atualizando todas as páginas dos cartões...';
-        status.className='ml-deadline-status warn';
-        const deadline=Date.now()+180000;
-        while(Date.now()<deadline){
-          await new Promise(resolve=>setTimeout(resolve,1500));
-          try{
-            const syncResponse=await fetch(base+'/api/sync/status?ts='+Date.now(),{cache:'no-store'});
-            const syncData=await syncResponse.json();
-            if(!syncData?.running?.ml)break;
-          }catch(_){break;}
-        }
-      }
-      const response=await fetch(base+'/api/mercadolivre/horarios?ts='+Date.now(),{cache:'no-store'});
-      const data=await response.json();
-      if(!response.ok||!data?.ok)throw new Error(data?.error||'Falha ao consultar horários.');
-      if (typeof window.ehfAplicarAlarmesDoMercadoLivre === 'function') {
-        window.ehfAplicarAlarmesDoMercadoLivre(data);
-      }
+
+      const data=await getJson('/api/mercadolivre/horarios');
+      if(!data?.ok)throw new Error(data?.error||'Falha ao consultar horários.');
+
       root.innerHTML=(data.accounts||[]).filter(account=>account.configured).map(renderAccount).join('')||'<div class="ml-deadline-loading">Nenhuma conta do Mercado Livre configurada.</div>';
+
       const configured=(data.accounts||[]).filter(a=>a.configured);
       const exact=Boolean(data.complete)&&configured.length>0&&configured.every(a=>a.complete&&a.flex?.countVerified&&a.coleta?.countVerified);
-      badge.textContent=exact?'CONTAGEM EXATA':'LEITURA PARCIAL';
-      badge.className='ml-source-badge '+(exact?'ok':'warn');
-      status.textContent=exact
-        ? `Leitura direta concluída: ${Number(data.totals?.packages||0)} pacote(s), sendo ${Number(data.totals?.flex||0)} Flex e ${Number(data.totals?.coleta||0)} Agência/Coleta. Atualizado em ${data.updatedAt?new Date(data.updatedAt).toLocaleTimeString('pt-BR'):'--'}.`
-        : 'Uma ou mais filas não confirmou o contador de pacotes. Para evitar número incorreto, o painel mostra “—” até validar Pack ID, shipment ou o contador específico do cartão.';
-      status.className='ml-deadline-status '+(exact?'':'warn');
+      const updatedDate=data.updatedAt?new Date(data.updatedAt):null;
+      const updatedValid=updatedDate&&Number.isFinite(updatedDate.getTime());
+      const ageSeconds=updatedValid?Math.max(0,Math.round((Date.now()-updatedDate.getTime())/1000)):null;
+      const stale=ageSeconds===null||ageSeconds>600;
+
+      if(finalRun?.status==='PARTIAL'){
+        badge.textContent='LEITURA PARCIAL';
+        badge.className='ml-source-badge warn';
+        status.textContent=finalRun.error||'A leitura terminou parcialmente; os últimos totais completos foram preservados.';
+        status.className='ml-deadline-status warn';
+      }else if(stale){
+        badge.textContent='DADOS ANTIGOS';
+        badge.className='ml-source-badge warn';
+        status.textContent=updatedValid
+          ?`O último snapshot do Mercado Livre tem ${ageSeconds} segundo(s). Clique em Atualizar Mercado Livre.`
+          :'O servidor ainda não confirmou uma leitura do Mercado Livre.';
+        status.className='ml-deadline-status warn';
+      }else{
+        badge.textContent=exact?'CONTAGEM EXATA':'LEITURA PARCIAL';
+        badge.className='ml-source-badge '+(exact?'ok':'warn');
+        if(exact){
+          status.innerHTML=`<span class="ml-status-chip"><strong>${Number(data.totals?.packages||0)}</strong> pacotes</span><span class="ml-status-chip flex"><strong>${Number(data.totals?.flex||0)}</strong> Flex</span><span class="ml-status-chip coleta"><strong>${Number(data.totals?.coleta||0)}</strong> Agência/Coleta</span><span class="ml-status-chip time">Atualizado <strong>${updatedDate.toLocaleTimeString('pt-BR')}</strong></span>`;
+        }else{
+          status.textContent='Uma ou mais filas não confirmou o contador de pacotes. Para evitar número incorreto, o painel mostra “—” até validar Pack ID, shipment ou o contador específico do cartão.';
+        }
+        status.className='ml-deadline-status '+(exact?'':'warn');
+      }
     }catch(error){
-      root.innerHTML='<div class="ml-deadline-loading">Não foi possível carregar o painel do Mercado Livre.</div>';
-      badge.textContent='ERRO DE LEITURA';badge.className='ml-source-badge warn';
-      status.textContent=error.message||String(error);status.className='ml-deadline-status error';
+      if(!root.querySelector('.ml-account-card')){
+        root.innerHTML='<div class="ml-deadline-loading">Não foi possível carregar o painel do Mercado Livre.</div>';
+      }
+      badge.textContent='ERRO DE LEITURA';
+      badge.className='ml-source-badge warn';
+      status.textContent=error.message||String(error);
+      status.className='ml-deadline-status error';
     }finally{
       loading=false;
-      if(button)button.disabled=false;
+      if(button){
+        button.disabled=false;
+        button.textContent='Atualizar Mercado Livre';
+      }
     }
   }
 
   document.addEventListener('DOMContentLoaded',()=>{
     document.getElementById('btn-refresh-ml-deadlines')?.addEventListener('click',()=>load(true));
+    document.addEventListener('click',async event=>{
+      const button=event.target.closest?.('[data-ml-copy-code]');
+      if(!button||button.disabled)return;
+      const code=String(button.dataset.mlCopyCode||'').trim();
+      if(!code)return;
+      const label=button.querySelector('span');
+      const original=label?.textContent||'Copiar';
+      try{
+        if(navigator.clipboard?.writeText){
+          await navigator.clipboard.writeText(code);
+        }else{
+          const textarea=document.createElement('textarea');textarea.value=code;textarea.style.position='fixed';textarea.style.opacity='0';document.body.appendChild(textarea);textarea.select();document.execCommand('copy');textarea.remove();
+        }
+        button.classList.add('copied');if(label)label.textContent='Copiado';
+        const toast=document.getElementById('toast-container');if(toast){toast.textContent=`Código ${code} copiado.`;toast.style.display='block';setTimeout(()=>{toast.style.display='none';},1800);}
+      }catch(error){
+        if(label)label.textContent='Erro';
+        console.error('Falha ao copiar código do Mercado Livre:',error);
+      }finally{
+        setTimeout(()=>{button.classList.remove('copied');if(label)label.textContent=original;},1400);
+      }
+    });
     load(false);
     setInterval(()=>load(false),60000);
   });
   window.ehfAtualizarHorariosMercadoLivre=load;
 })();
+
+/* ===== UX 4.2.50 — Menu lateral recolhível ===== */
+(()=>{
+  const STORAGE_KEY='ehf_sidebar_collapsed';
+
+  function initSidebarToggle(){
+    const button=document.getElementById('enterprise-sidebar-toggle');
+    const sidebar=document.querySelector('.enterprise-sidebar');
+    if(!button||!sidebar)return;
+
+    document.querySelectorAll('.enterprise-nav-item').forEach(item=>{
+      const text=Array.from(item.children).find(el=>el.tagName==='SPAN'&&!el.classList.contains('nav-icon')&&!el.classList.contains('nav-badge'))?.textContent?.trim();
+      if(text&&!item.getAttribute('title'))item.setAttribute('title',text);
+    });
+
+    const apply=()=>{
+      const desktop=window.innerWidth>900;
+      const wanted=localStorage.getItem(STORAGE_KEY)==='1';
+      const collapsed=desktop&&wanted;
+      document.body.classList.toggle('ehf-sidebar-collapsed',collapsed);
+      button.setAttribute('aria-expanded',String(!collapsed));
+      button.setAttribute('aria-label',collapsed?'Expandir menu lateral':'Recolher menu lateral');
+      button.title=collapsed?'Expandir menu':'Recolher menu';
+    };
+
+    button.addEventListener('click',()=>{
+      const next=!document.body.classList.contains('ehf-sidebar-collapsed');
+      localStorage.setItem(STORAGE_KEY,next?'1':'0');
+      apply();
+    });
+
+    window.addEventListener('resize',apply,{passive:true});
+    apply();
+  }
+
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initSidebarToggle,{once:true});
+  else initSidebarToggle();
+})();
+
+
+window.EHF_BIPAGEM_FAST_VERSION = '4.2.51-BIPAGEM-ASYNC-FAST-QUEUE';

@@ -1,3 +1,4 @@
+window.EHF_EMBALAGEM_RUNTIME_VERSION='4.2.29-CAMERA-EMBALAGEM-BIPAGEM';
 (function(){
   window.EHFModules=window.EHFModules||{};
 
@@ -8,12 +9,21 @@
     history:[],
     startedAt:null,
     operator:'',
-    alreadyPacked:false
+    alreadyPacked:false,
+    camera:{active:false,stream:null,timer:null,reader:null,controls:null,lastCode:'',lastAt:0,facingMode:'environment'}
   };
 
   const API_BASE=()=>String(
+    window.EHF_TINY_WORKER_BASE||
     localStorage.getItem('ehf_worker_api_base')||
-    'https://atendente-vesco-separacao.2cwhzy.easypanel.host'
+    localStorage.getItem('ehf_summary_api_base')||
+    'https://atendente-vesco-tiny-worker.2cwhzy.easypanel.host'
+  ).replace(/\/+$/,'');
+
+  const PLANILHA_APP_URL=()=>String(
+    window.EHF_PLANILHA_APP_URL||
+    localStorage.getItem('ehf_planilha_app_url')||
+    'https://script.google.com/macros/s/AKfycbwQ8-Rn-zZJQM0fLm9js3ErtJZefRnHP55E3M0r3Z_TIXS_skTioZ6p3yHqTLFYxPU9/exec'
   ).replace(/\/+$/,'');
 
   const $=id=>document.getElementById(id);
@@ -38,6 +48,20 @@
     if(tbr)return tbr[1].toUpperCase();
     const tokens=raw.match(/[A-Za-z0-9_-]{8,40}/g)||[];
     return tokens.sort((a,b)=>b.length-a.length)[0]||raw.replace(/[^A-Za-z0-9_-]/g,'');
+  }
+
+  function planilhaLookupUrl(code){
+    const base=PLANILHA_APP_URL();
+    if(!base)return'';
+    return base+'?action=buscarSeparacao&codigo='+encodeURIComponent(code)+'&live=1&ts='+Date.now();
+  }
+
+  async function registrarFaltaNaPlanilha(code){
+    try{
+      const base=PLANILHA_APP_URL();
+      if(!base)return;
+      await fetch(base+'?action=debugCodigo&codigo='+encodeURIComponent(code)+'&ts='+Date.now(),{cache:'no-store'});
+    }catch(_){}
   }
 
   function injectStyles(){
@@ -67,6 +91,22 @@
       .ehfm-order.locked{border-color:rgba(239,68,68,.42)}
       .ehfm-order.locked .ehfm-order-head:after{content:'JÁ EMBALADA';background:rgba(127,29,29,.42);color:#fecaca;border:1px solid rgba(239,68,68,.45);border-radius:999px;padding:5px 8px;font-size:9px;font-weight:900}
       .ehfm-history-code{font-weight:900;color:#ffb04a;white-space:nowrap}
+
+      .ehfm-btn.camera{background:#0ea5e9;color:#001018;border-color:rgba(14,165,233,.65);font-weight:950}
+      .ehfm-btn.camera:hover{filter:brightness(1.08)}
+      .ehfm-camera-modal{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.86);display:flex;align-items:center;justify-content:center;padding:14px}
+      .ehfm-camera-card{width:min(720px,100%);background:#07111d;border:1px solid rgba(255,138,0,.55);border-radius:16px;box-shadow:0 22px 80px rgba(0,0,0,.55);overflow:hidden}
+      .ehfm-camera-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.08)}
+      .ehfm-camera-head b{color:#fff;font-size:15px}.ehfm-camera-head span{color:#93a4b8;font-size:11px}
+      .ehfm-camera-body{position:relative;background:#000;min-height:280px;display:flex;align-items:center;justify-content:center}
+      .ehfm-camera-body video{width:100%;max-height:72vh;object-fit:cover;background:#000}
+      .ehfm-camera-guide{position:absolute;left:8%;right:8%;top:38%;height:82px;border:2px solid rgba(255,138,0,.95);border-radius:12px;box-shadow:0 0 0 999px rgba(0,0,0,.22);pointer-events:none}
+      .ehfm-camera-guide:after{content:'';position:absolute;left:8px;right:8px;top:50%;border-top:2px solid rgba(34,197,94,.95);box-shadow:0 0 12px rgba(34,197,94,.75)}
+      .ehfm-camera-status{padding:9px 14px;color:#cbd5e1;font-size:12px;background:#0b1420;border-top:1px solid rgba(255,255,255,.08)}
+      .ehfm-camera-actions{display:flex;gap:8px;flex-wrap:wrap;padding:12px 14px;background:#07111d}
+      .ehfm-camera-fallback{display:none;padding:0 14px 14px;color:#94a3b8;font-size:11px}
+      @media(max-width:700px){.ehfm-scan-row{display:grid;grid-template-columns:1fr;gap:9px}.ehfm-btn.camera,.ehfm-scan-row .ehfm-btn{width:100%;min-height:48px}.ehfm-camera-body{min-height:60vh}.ehfm-camera-guide{left:5%;right:5%;top:43%;height:76px}}
+
       @media(max-width:700px){
         .ehfm-items.visual{grid-template-columns:1fr}
         .ehfm-product-card{grid-template-columns:90px 1fr;min-height:110px}
@@ -117,6 +157,7 @@
           <div class="ehfm-scan-row">
             <input id="ehfm-pack-input" class="ehfm-scan-input" autocomplete="off" placeholder="BIPE A ETIQUETA OU DIGITE O CÓDIGO">
             <button id="ehfm-pack-search" class="ehfm-btn primary">Localizar pedido</button>
+            <button id="ehfm-pack-camera" class="ehfm-btn camera" type="button">Usar câmera</button>
           </div>
           <div id="ehfm-pack-status" class="ehfm-scan-status">Pronto para leitura</div>
         </section>
@@ -194,6 +235,13 @@
       </section>`;
 
     $('ehfm-pack-search').onclick=lookup;
+    const camBtn=$('ehfm-pack-camera');
+    if(camBtn){
+      const mobile=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent||'');
+      camBtn.style.display=(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)?'inline-flex':'none';
+      camBtn.textContent=mobile?'Ler com câmera':'Usar câmera';
+      camBtn.onclick=openCameraScanner;
+    }
     $('ehfm-pack-input').onkeydown=e=>{
       if(e.key==='Enter'){e.preventDefault();lookup();}
     };
@@ -479,7 +527,8 @@
         setTimeout(()=>$('ehfm-pack-confirm')?.focus(),60);
       }
     }catch(error){
-      alert(error.message||String(error));
+      await registrarFaltaNaPlanilha(raw).catch(()=>{});
+      alert((error.message||String(error))+' | Fonte: tiny-worker. Falta registrada na planilha se não existir alias.');
       setStatus('Etiqueta não localizada ou bloqueada.');
       $('ehfm-pack-input').disabled=false;
       $('ehfm-pack-search').disabled=false;
@@ -590,6 +639,165 @@
     $('ehfm-pack-last-time').textContent=last
       ?new Date(last.finished_at||last.completed_at||last.started_at||Date.now()).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})
       :'--:--';
+  }
+
+
+  function cameraSetStatus(text){
+    const el=document.getElementById('ehfm-camera-status');
+    if(el)el.textContent=text||'';
+  }
+
+  function ensureCameraModal(){
+    let modal=document.getElementById('ehfm-camera-modal');
+    if(modal)return modal;
+    modal=document.createElement('div');
+    modal.id='ehfm-camera-modal';
+    modal.className='ehfm-camera-modal';
+    modal.style.display='none';
+    modal.innerHTML=`
+      <div class="ehfm-camera-card" role="dialog" aria-modal="true">
+        <div class="ehfm-camera-head">
+          <div><b>Leitor por câmera</b><br><span>Aponte para o código de barras ou QR da etiqueta</span></div>
+          <button id="ehfm-camera-close" class="ehfm-btn danger" type="button">Fechar</button>
+        </div>
+        <div class="ehfm-camera-body">
+          <video id="ehfm-camera-video" playsinline muted></video>
+          <div class="ehfm-camera-guide"></div>
+        </div>
+        <div id="ehfm-camera-status" class="ehfm-camera-status">Preparando câmera...</div>
+        <div class="ehfm-camera-actions">
+          <button id="ehfm-camera-flip" class="ehfm-btn" type="button">Alternar câmera</button>
+          <button id="ehfm-camera-manual" class="ehfm-btn" type="button">Digitar manualmente</button>
+        </div>
+        <div id="ehfm-camera-fallback" class="ehfm-camera-fallback">Se a câmera não abrir, use o campo manual ou permita o acesso à câmera no navegador.</div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.querySelector('#ehfm-camera-close').onclick=closeCameraScanner;
+    modal.querySelector('#ehfm-camera-manual').onclick=()=>{ closeCameraScanner(); setTimeout(()=>$('ehfm-pack-input')?.focus(),80); };
+    modal.querySelector('#ehfm-camera-flip').onclick=async()=>{
+      state.camera.facingMode=state.camera.facingMode==='environment'?'user':'environment';
+      await closeCameraScanner(false);
+      await openCameraScanner();
+    };
+    return modal;
+  }
+
+  async function loadZxingBrowser(){
+    if(window.ZXingBrowser&&window.ZXingBrowser.BrowserMultiFormatReader)return true;
+    const urls=[
+      'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/index.min.js',
+      'https://unpkg.com/@zxing/browser@0.1.5/umd/index.min.js'
+    ];
+    for(const url of urls){
+      try{
+        await new Promise((resolve,reject)=>{
+          const script=document.createElement('script');
+          script.src=url; script.async=true; script.onload=resolve; script.onerror=reject;
+          document.head.appendChild(script);
+        });
+        if(window.ZXingBrowser&&window.ZXingBrowser.BrowserMultiFormatReader)return true;
+      }catch(_){ }
+    }
+    return false;
+  }
+
+  function onCameraCode(raw){
+    const now=Date.now();
+    const code=normalize(raw);
+    if(!code)return;
+    if(state.camera.lastCode===code&&(now-state.camera.lastAt)<1800)return;
+    state.camera.lastCode=code; state.camera.lastAt=now;
+    try{ if(navigator.vibrate) navigator.vibrate(80); }catch(_){ }
+    closeCameraScanner(false);
+    const input=$('ehfm-pack-input');
+    if(input){ input.value=code; input.focus(); }
+    setStatus('Código lido pela câmera: '+code);
+    lookup();
+  }
+
+  async function openCameraScanner(){
+    try{
+      if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+        alert('Este navegador não liberou câmera. Abra pelo Vercel em HTTPS ou use digitação manual.');
+        return;
+      }
+      const modal=ensureCameraModal();
+      modal.style.display='flex';
+      state.camera.active=true;
+      cameraSetStatus('Solicitando permissão da câmera...');
+      const video=document.getElementById('ehfm-camera-video');
+      const constraints={video:{facingMode:{ideal:state.camera.facingMode||'environment'},width:{ideal:1280},height:{ideal:720}},audio:false};
+      const stream=await navigator.mediaDevices.getUserMedia(constraints);
+      state.camera.stream=stream;
+      video.srcObject=stream;
+      await video.play();
+
+      if('BarcodeDetector' in window){
+        let formats=['qr_code','code_128','code_39','code_93','ean_13','ean_8','itf','codabar','data_matrix','pdf417','upc_a','upc_e'];
+        try{
+          if(window.BarcodeDetector.getSupportedFormats){
+            const supported=await window.BarcodeDetector.getSupportedFormats();
+            formats=formats.filter(f=>supported.includes(f));
+          }
+          state.camera.detector=new BarcodeDetector({formats:formats.length?formats:undefined});
+        }catch(_){ state.camera.detector=new BarcodeDetector(); }
+        cameraSetStatus('Câmera ativa. Centralize a etiqueta dentro do retângulo.');
+        const tick=async()=>{
+          if(!state.camera.active||!state.camera.detector)return;
+          try{
+            const codes=await state.camera.detector.detect(video);
+            if(codes&&codes.length){
+              onCameraCode(codes[0].rawValue||codes[0].rawData||codes[0].value||'');
+              return;
+            }
+          }catch(_){ }
+          state.camera.timer=setTimeout(tick,160);
+        };
+        tick();
+        return;
+      }
+
+      cameraSetStatus('Leitor nativo indisponível. Carregando leitor compatível...');
+      const ok=await loadZxingBrowser();
+      if(!ok){
+        cameraSetStatus('Não foi possível carregar o leitor de código. Use o campo manual.');
+        const fb=document.getElementById('ehfm-camera-fallback');
+        if(fb)fb.style.display='block';
+        return;
+      }
+      const reader=new window.ZXingBrowser.BrowserMultiFormatReader();
+      state.camera.reader=reader;
+      cameraSetStatus('Câmera ativa. Centralize o código para leitura.');
+      const controls=await reader.decodeFromVideoElement(video,(result,err,ctrls)=>{
+        if(result){
+          state.camera.controls=ctrls||state.camera.controls;
+          onCameraCode(result.getText ? result.getText() : String(result.text||result));
+        }
+      });
+      state.camera.controls=controls;
+    }catch(error){
+      cameraSetStatus('Erro ao abrir câmera: '+(error&&error.message?error.message:String(error)));
+      alert('Não consegui abrir a câmera. Verifique permissão do navegador e use HTTPS.');
+    }
+  }
+
+  async function closeCameraScanner(hide=true){
+    state.camera.active=false;
+    if(state.camera.timer){ clearTimeout(state.camera.timer); state.camera.timer=null; }
+    try{ if(state.camera.controls&&state.camera.controls.stop) state.camera.controls.stop(); }catch(_){ }
+    try{ if(state.camera.reader&&state.camera.reader.reset) state.camera.reader.reset(); }catch(_){ }
+    try{
+      if(state.camera.stream){
+        state.camera.stream.getTracks().forEach(track=>track.stop());
+        state.camera.stream=null;
+      }
+    }catch(_){ }
+    const video=document.getElementById('ehfm-camera-video');
+    if(video)video.srcObject=null;
+    if(hide){
+      const modal=document.getElementById('ehfm-camera-modal');
+      if(modal)modal.style.display='none';
+    }
   }
 
   function activate(){

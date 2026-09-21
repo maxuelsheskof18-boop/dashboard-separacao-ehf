@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="view-transition" content="same-origin">
-  <meta name="vesco-version" content="4.2.6-VERCEL-STATIC-ROOT-CORRIGIDO">
+  <meta name="vesco-version" content="4.2.31-DASHMARKETPLACE-GHPAGES">
   <title>Dashboard de Separação — EHF</title>
 
   
@@ -3211,25 +3211,58 @@
 
 <script>
 (function(){
-  const EHF_API_BASE='https://atendente-vesco-separacao.2cwhzy.easypanel.host';
+  const EHF_GATEWAY_BASE=(window.EHF_GATEWAY_BASE||'https://atendente-vesco-separacao.2cwhzy.easypanel.host').replace(/\/+$/,'');
+  const EHF_TINY_WORKER_BASE=(window.EHF_TINY_WORKER_BASE||localStorage.getItem('ehf_summary_api_base')||'https://atendente-vesco-tiny-worker.2cwhzy.easypanel.host').replace(/\/+$/,'');
   const nativeFetch=window.fetch.bind(window);
+
+  function rewriteEHFUrl(raw){
+    if(!raw) return raw;
+    const txt=String(raw);
+
+    // Rotas canônicas: sempre no cérebro (tiny-worker), mesmo que algum módulo tente chamar o gateway antigo.
+    const workerRelative=/^\/api\/(embalagem|packing|scan|summary|formasEnvio|admin\/reindex-aliases|admin\/purge-unsafe-aliases|embalagem\/registrar-alias|sync\/status|health)(\/|\?|$)/.test(txt);
+    if(workerRelative) return EHF_TINY_WORKER_BASE+txt;
+    if(/^\/(summary|formasEnvio)$/.test(txt)) return EHF_TINY_WORKER_BASE+txt;
+
+    // Demais rotas relativas continuam no gateway/vesco-separacao.
+    if(/^\/api\//.test(txt)) return EHF_GATEWAY_BASE+txt;
+
+    // Proteção contra chamadas absolutas antigas para o gateway.
+    // Tudo que é cérebro operacional/embalagem/bipagem deve ir para o tiny-worker.
+    try{
+      const u=new URL(txt);
+      const isGateway=u.hostname.includes('atendente-vesco-separacao');
+      const workerAbsolute=/^\/api\/(embalagem|packing|scan|summary|formasEnvio|admin\/reindex-aliases|admin\/purge-unsafe-aliases|admin\/mirror-planilha-now|embalagem\/registrar-alias|produtos|sync\/status|health)(\/|\?|$)/.test(u.pathname);
+      const isCanonical=['/summary','/formasEnvio'].includes(u.pathname) || workerAbsolute;
+      if(isGateway && isCanonical){
+        return EHF_TINY_WORKER_BASE+u.pathname+u.search;
+      }
+    }catch(_){}
+
+    return raw;
+  }
+
   window.fetch=function(input,init){
     try{
       const raw=typeof input==='string'?input:input?.url;
-      if(raw&&(/^\/api\//.test(raw)||raw==='/summary'||raw==='/formasEnvio'||raw==='/produtividade'||raw==='/marcadores'||raw==='/pedidos-atrasados'||raw==='/embalagem/buscar')){
-        const target=EHF_API_BASE+raw;
-        return nativeFetch(target,init);
+      const target=rewriteEHFUrl(raw);
+      if(target!==raw){
+        return nativeFetch(target,{cache:'no-store',...(init||{})});
       }
     }catch(_){}
     return nativeFetch(input,init);
   };
-  window.EHF_API_BASE=EHF_API_BASE;
+
+  window.EHF_GATEWAY_BASE=EHF_GATEWAY_BASE;
+  window.EHF_TINY_WORKER_BASE=EHF_TINY_WORKER_BASE;
+  window.EHF_SUMMARY_API_BASE=EHF_TINY_WORKER_BASE;
+  window.EHF_API_BASE=EHF_GATEWAY_BASE;
 })();
 </script>
 
 <style id="ehf-v28-bipagem-style">
   @view-transition{navigation:auto}::view-transition-old(root){animation:ehfFadeOut .12s ease both}::view-transition-new(root){animation:ehfFadeIn .16s ease both}@keyframes ehfFadeOut{to{opacity:0;transform:translateY(3px)}}@keyframes ehfFadeIn{from{opacity:0;transform:translateY(3px)}}
-  .bip-session-panel{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 14px;padding:14px 16px;border:1px solid rgba(255,138,0,.28);border-radius:14px;background:linear-gradient(110deg,rgba(255,138,0,.10),rgba(17,24,39,.78))}.bip-session-panel h3{margin:0 0 4px;font-size:14px}.bip-session-panel p{margin:0;color:var(--muted);font-size:10px}.bip-session-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.bip-session-pill{display:inline-flex;gap:6px;align-items:center;padding:7px 10px;border:1px solid rgba(255,255,255,.10);border-radius:999px;background:#0b0e12;font-size:10px;font-weight:850}.bip-session-pill strong{color:#ff9b22}.bip-session-btn{border:0;border-radius:9px;padding:9px 12px;font-size:10px;font-weight:900;cursor:pointer;background:#20252d;color:#fff}.bip-session-btn.primary{background:#ff8a00;color:#080808}.bip-session-btn.success{background:#27ae60}.bip-session-btn.danger{background:#b83232}.bip-session-btn:disabled{opacity:.45;cursor:not-allowed}
+  .bip-session-panel{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 14px;padding:14px 16px;border:1px solid rgba(255,138,0,.28);border-radius:14px;background:linear-gradient(110deg,rgba(255,138,0,.10),rgba(17,24,39,.78))}.bip-session-panel h3{margin:0 0 4px;font-size:14px}.bip-session-panel p{margin:0;color:var(--muted);font-size:10px}.bip-session-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.bip-session-pill{display:inline-flex;gap:6px;align-items:center;padding:7px 10px;border:1px solid rgba(255,255,255,.10);border-radius:999px;background:#0b0e12;font-size:10px;font-weight:850}.bip-session-pill strong{color:#ff9b22}.bip-session-btn{border:0;border-radius:9px;padding:9px 12px;font-size:10px;font-weight:900;cursor:pointer;background:#20252d;color:#fff}.bip-session-btn.primary{background:#ff8a00;color:#080808}.bip-session-btn.success{background:#27ae60}.bip-session-btn.danger{background:#b83232}.bip-session-btn:disabled{opacity:.45;cursor:not-allowed}.bip-session-pill.fast-queue{border-color:rgba(59,130,246,.35);background:rgba(59,130,246,.08)}.bip-session-pill.fast-pending{border-color:rgba(255,138,0,.35);background:rgba(255,138,0,.08)}.bip-session-pill.fast-sheet{border-color:rgba(39,174,96,.35);background:rgba(39,174,96,.08)}.scan-status.busy{color:#ffb454!important;border-color:rgba(255,138,0,.45)!important}
   .bip-session-modal{position:fixed;inset:0;z-index:10050;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;padding:18px}.bip-session-modal.open{display:flex}.bip-session-dialog{width:min(560px,100%);border:1px solid rgba(255,138,0,.35);border-radius:16px;background:#0d1015;box-shadow:0 26px 90px rgba(0,0,0,.65);padding:20px}.bip-session-dialog h2{margin:0;font-size:20px}.bip-session-dialog>p{color:#8f98a5;font-size:11px;line-height:1.5}.bip-session-form{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:15px}.bip-session-field{display:grid;gap:6px}.bip-session-field.full{grid-column:1/-1}.bip-session-field label{font-size:9px;text-transform:uppercase;font-weight:900;color:#9ba4b1}.bip-session-field input,.bip-session-field select,.bip-session-field textarea{width:100%;background:#07090c;color:#fff;border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:11px;outline:none}.bip-session-field input:focus,.bip-session-field select:focus,.bip-session-field textarea:focus{border-color:#ff8a00}.bip-session-modal-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:16px}.bip-session-count{font-size:24px;font-weight:950;color:#ff8a00}.bip-scan-hero.session-locked{opacity:.55}.bip-scan-hero.session-locked input{pointer-events:none}.bip-session-warning{color:#ffc46b!important}.bip-session-success{color:#76dc98!important}
   @media(max-width:760px){.bip-session-panel{align-items:flex-start;flex-direction:column}.bip-session-actions{width:100%}.bip-session-btn{flex:1}.bip-session-form{grid-template-columns:1fr}}
 </style>
@@ -3297,6 +3330,95 @@ body[data-active-module="embalagem"] .top-counters,body[data-active-module="emba
     .ml-mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.ml-mode{background:#0b0f15;border:1px solid rgba(255,255,255,.06);border-radius:9px;padding:8px}.ml-mode label{display:block;color:#94a3b8;font-size:9px;font-weight:900;text-transform:uppercase;margin-bottom:4px}.ml-mode b{font-size:18px}.ml-mode em{display:block;font-style:normal;color:#ef4444;font-size:9px;margin-top:3px;font-weight:800}.ml-mode em.warn{color:#fbbf24}.ml-count-pending{display:block;color:#fbbf24;font-size:8px;line-height:1.25;margin-top:2px;font-weight:700}.ml-deadline-status{margin-top:10px;color:#86efac;font-size:10px}.ml-deadline-status.warn{color:#fbbf24}.ml-deadline-status.error{color:#f87171}.ml-deadline-loading{grid-column:1/-1;color:#94a3b8;font-size:11px;padding:12px;text-align:center}
     @media(max-width:1100px){.ml-deadline-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:650px){.ml-deadline-head{flex-direction:column}.ml-deadline-actions{justify-content:flex-start}.ml-deadline-summary{grid-template-columns:1fr}}
   </style>
+  <script>window.EHF_FRONTEND_PANEL_PACKAGE='4.2.50-UX-ML-SIDEBAR';document.documentElement.setAttribute('data-ehf-package','4.2.50');</script>
+
+<style id="ehf-v4250-ux-refresh">
+  /* UX 4.2.50 — Mercado Livre legível + menu lateral recolhível */
+  .topbar-left::before{display:none!important}
+  .enterprise-sidebar,.topbar,.view-section{transition:width .22s ease,margin-left .22s ease,transform .22s ease}
+  .enterprise-sidebar-toggle{width:40px;height:40px;flex:0 0 40px;display:inline-grid;place-items:center;border:1px solid rgba(255,255,255,.10);border-radius:10px;background:rgba(255,255,255,.055);color:#fff;cursor:pointer;transition:background .18s ease,border-color .18s ease,transform .18s ease}
+  .enterprise-sidebar-toggle:hover{background:rgba(255,138,0,.13);border-color:rgba(255,138,0,.32)}
+  .enterprise-sidebar-toggle:active{transform:scale(.96)}
+  .enterprise-sidebar-toggle .sidebar-toggle-icon{width:18px;display:grid;gap:4px}
+  .enterprise-sidebar-toggle .sidebar-toggle-icon i{display:block;height:2px;border-radius:99px;background:currentColor;transition:transform .2s ease,width .2s ease}
+  body.ehf-sidebar-collapsed .enterprise-sidebar-toggle .sidebar-toggle-icon i:nth-child(1){width:12px;transform:translateX(5px) rotate(35deg)}
+  body.ehf-sidebar-collapsed .enterprise-sidebar-toggle .sidebar-toggle-icon i:nth-child(2){width:18px}
+  body.ehf-sidebar-collapsed .enterprise-sidebar-toggle .sidebar-toggle-icon i:nth-child(3){width:12px;transform:translateX(5px) rotate(-35deg)}
+
+  @media(min-width:901px){
+    body.ehf-sidebar-collapsed .enterprise-sidebar{width:76px}
+    body.ehf-sidebar-collapsed .topbar,body.ehf-sidebar-collapsed .view-section{margin-left:76px}
+    body.ehf-sidebar-collapsed .enterprise-brand{padding:0 10px;justify-content:center}
+    body.ehf-sidebar-collapsed .ehf-brand-logo{display:none!important}
+    body.ehf-sidebar-collapsed .ehf-brand-logo-compact{display:block!important;max-width:44px!important;max-height:44px!important;width:auto!important;height:auto!important;object-fit:contain!important}
+    body.ehf-sidebar-collapsed .enterprise-nav{padding-left:9px;padding-right:9px}
+    body.ehf-sidebar-collapsed .enterprise-nav-label{display:none}
+    body.ehf-sidebar-collapsed .enterprise-nav-item{position:relative;justify-content:center;gap:0;padding:12px 8px;min-height:44px}
+    body.ehf-sidebar-collapsed .enterprise-nav-item>span:not(.nav-icon):not(.nav-badge){display:none}
+    body.ehf-sidebar-collapsed .enterprise-nav-item .nav-icon{width:26px;font-size:17px;margin:0}
+    body.ehf-sidebar-collapsed .enterprise-nav-item .nav-badge{position:absolute;right:3px;top:3px;min-width:16px;height:16px;padding:0 4px;display:grid;place-items:center;font-size:8px}
+    body.ehf-sidebar-collapsed .enterprise-sidebar-footer{padding:16px 8px;display:flex;align-items:center;justify-content:center;min-height:46px}
+    body.ehf-sidebar-collapsed .enterprise-sidebar-footer>*{display:none!important}
+    body.ehf-sidebar-collapsed .enterprise-sidebar-footer::after{content:"";display:block;width:9px;height:9px;border-radius:50%;background:#30c56f;box-shadow:0 0 0 4px rgba(48,197,111,.12),0 0 14px rgba(48,197,111,.55)}
+  }
+
+  /* Mercado Livre */
+  .ml-deadline-panel{padding:18px!important;border-radius:16px!important;background:linear-gradient(180deg,#0d1118 0%,#080b10 100%)!important;box-shadow:0 16px 48px rgba(0,0,0,.22)}
+  .ml-deadline-head{margin-bottom:16px!important;align-items:center!important}
+  .ml-deadline-head h3{font-size:16px!important;letter-spacing:-.2px}
+  .ml-deadline-head p{max-width:700px;font-size:10.5px!important}
+  .ml-source-badge{font-size:9px!important;letter-spacing:.45px;padding:7px 11px!important}
+  .ml-deadline-summary{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:12px!important}
+  .ml-account-card{background:linear-gradient(180deg,#111a27 0%,#0d141f 100%)!important;border:1px solid rgba(148,163,184,.13)!important;border-radius:15px!important;padding:13px!important;min-width:0;box-shadow:inset 0 1px 0 rgba(255,255,255,.025)}
+  .ml-account-title{margin-bottom:11px!important}
+  .ml-account-title b{font-size:12.5px!important;letter-spacing:-.1px}
+  .ml-account-title span{font-size:7.5px!important;letter-spacing:.35px;padding:4px 7px!important;border:1px solid transparent}
+  .ml-account-title span.ok{border-color:rgba(34,197,94,.16)}
+  .ml-account-error{margin:0 0 9px!important;padding:7px 8px;border-radius:7px;background:rgba(127,29,29,.18);white-space:normal!important}
+  .ml-cutoff{padding:9px 10px!important;margin-bottom:8px!important;border-radius:10px!important;background:linear-gradient(90deg,#090e15,#0b1119)!important}
+  .ml-cutoff small{font-size:8px!important;letter-spacing:.4px}
+  .ml-cutoff strong{font-size:19px!important}
+
+  .ml-auth-code{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;gap:10px!important;margin:0 0 10px!important;padding:9px 9px 9px 10px!important;border-radius:10px!important;background:linear-gradient(90deg,rgba(37,99,235,.13),rgba(14,116,144,.07))!important;border:1px solid rgba(96,165,250,.22)!important}
+  .ml-auth-code-info{min-width:0;display:grid;gap:2px}
+  .ml-auth-code span{font-size:7.5px!important;color:#93c5fd!important;font-weight:900!important;text-transform:uppercase;letter-spacing:.45px}
+  .ml-auth-code b{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px!important;line-height:1.1;letter-spacing:1px!important;color:#f1f5f9!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ml-auth-code.missing b{font-family:inherit;font-size:9px!important;letter-spacing:0!important;color:#fbbf24!important}
+  .ml-copy-code{height:30px;min-width:64px;display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:0 9px;border:1px solid rgba(147,197,253,.23);border-radius:8px;background:rgba(30,64,175,.18);color:#dbeafe;font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.3px;cursor:pointer;transition:all .16s ease}
+  .ml-copy-code:hover{background:rgba(37,99,235,.3);border-color:rgba(147,197,253,.42);transform:translateY(-1px)}
+  .ml-copy-code.copied{background:rgba(22,163,74,.20);border-color:rgba(74,222,128,.35);color:#bbf7d0}
+  .ml-copy-code:disabled{opacity:.45;cursor:not-allowed;transform:none}
+  .ml-copy-icon{width:12px;height:12px;display:block}
+
+  .ml-mode-grid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important}
+  .ml-mode{padding:10px!important;border-radius:11px!important;background:linear-gradient(180deg,#090f17,#080d14)!important;border:1px solid rgba(148,163,184,.10)!important;min-width:0}
+  .ml-mode-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding-bottom:8px;margin-bottom:7px;border-bottom:1px solid rgba(255,255,255,.065)}
+  .ml-mode-name{display:grid;gap:2px;min-width:0}
+  .ml-mode-name label{margin:0!important;font-size:8px!important;color:#93c5fd!important;letter-spacing:.55px}
+  .ml-mode-name small{font-size:7px;color:#64748b;line-height:1.15}
+  .ml-mode-total{display:grid;justify-items:end;gap:0;flex:0 0 auto}
+  .ml-mode-total small{font-size:6.5px;color:#64748b;text-transform:uppercase;font-weight:800;letter-spacing:.4px}
+  .ml-mode-total b{font-size:22px!important;line-height:1!important;color:#f8fafc}
+  .ml-mode-delay{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:5px 7px;margin:0 0 6px;border-radius:7px;background:rgba(239,68,68,.075);color:#fca5a5;font-size:7.5px;font-weight:800}
+  .ml-mode-delay strong{font-size:9px;color:#fb7185}
+  .ml-mode-delay.zero{background:rgba(148,163,184,.055);color:#64748b}.ml-mode-delay.zero strong{color:#94a3b8}
+  .ml-count-pending{font-size:7px!important;padding:5px 6px;margin:0 0 6px!important;border-radius:6px;background:rgba(245,158,11,.08)}
+  .ml-queue-list{display:grid!important;gap:0!important;margin-top:0!important;padding-top:0!important;border-top:0!important}
+  .ml-queue-row{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center;gap:8px!important;padding:5px 1px!important;border-bottom:1px solid rgba(255,255,255,.045);color:#a9b5c6!important;font-size:8.5px!important;line-height:1.2!important}
+  .ml-queue-row:last-child{border-bottom:0}
+  .ml-queue-row span{min-width:0;white-space:normal}
+  .ml-queue-row strong{min-width:18px;text-align:right;font-size:10.5px!important;color:#e5edf8!important;font-variant-numeric:tabular-nums}
+  .ml-queue-row.danger strong{color:#fb7185!important}.ml-queue-row.warning strong{color:#fbbf24!important}.ml-queue-row.success strong{color:#4ade80!important}.ml-queue-row.info strong{color:#60a5fa!important}.ml-queue-row.zero{opacity:.52}
+  .ml-deadline-status{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:12px!important;padding-top:11px;border-top:1px solid rgba(255,255,255,.06);font-size:8.5px!important}
+  .ml-status-chip{display:inline-flex;align-items:center;gap:4px;padding:5px 8px;border-radius:999px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.06);color:#94a3b8}
+  .ml-status-chip strong{color:#dce6f3;font-size:9px}
+  .ml-status-chip.flex strong{color:#60a5fa}.ml-status-chip.coleta strong{color:#fb923c}.ml-status-chip.time strong{color:#86efac}
+
+  @media(max-width:1650px){.ml-deadline-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important}.ml-account-card{padding:14px!important}.ml-queue-row{font-size:9px!important}.ml-queue-row strong{font-size:11px!important}}
+  @media(max-width:900px){.enterprise-sidebar-toggle{display:none!important}.ml-deadline-summary{grid-template-columns:1fr!important}.ml-mode-grid{grid-template-columns:1fr 1fr!important}}
+  @media(max-width:560px){.ml-mode-grid{grid-template-columns:1fr!important}.ml-deadline-panel{padding:12px!important}.ml-deadline-head{align-items:flex-start!important}}
+</style>
+
 </head>
 
 <body>
@@ -3361,6 +3483,9 @@ body[data-active-module="embalagem"] .top-counters,body[data-active-module="emba
 
   <header class="topbar">
     <div class="topbar-left">
+      <button id="enterprise-sidebar-toggle" class="enterprise-sidebar-toggle" type="button" aria-label="Recolher menu lateral" aria-expanded="true" title="Recolher menu">
+        <span class="sidebar-toggle-icon" aria-hidden="true"><i></i><i></i><i></i></span>
+      </button>
       <div class="title">Dashboard de Separação — <span class="accent">EHF</span></div>
       <nav class="nav-tabs-main">
         <button class="tab-link active" data-view="view-coletas" onclick="switchMainView('view-coletas', event)">Painel</button>
@@ -3645,6 +3770,9 @@ body[data-active-module="embalagem"] .top-counters,body[data-active-module="emba
         <div class="bip-session-actions">
           <span class="bip-session-pill">Pacotes <strong id="bip-session-packages">0</strong></span>
           <span class="bip-session-pill">Unidades <strong id="bip-session-units">0</strong></span>
+          <span class="bip-session-pill fast-queue">Fila <strong id="bip-session-queue">0</strong></span>
+          <span class="bip-session-pill fast-pending">Identificando <strong id="bip-session-pending">0</strong></span>
+          <span class="bip-session-pill fast-sheet">Planilha <strong id="bip-session-sheet">0</strong></span>
           <button id="btn-bip-session-start" class="bip-session-btn primary" type="button">Iniciar conferência</button>
           <button id="btn-bip-session-manifest" class="bip-session-btn" type="button" disabled>Romaneio</button>
           <button id="btn-bip-session-finish" class="bip-session-btn success" type="button" disabled>Finalizar</button>
@@ -3702,7 +3830,7 @@ body[data-active-module="embalagem"] .top-counters,body[data-active-module="emba
         <div class="input-bip-box bip-input-pro">
           <input type="text" id="input-leitor-codigo" placeholder="BIPE AQUI" autocomplete="off" autofocus>
         </div>
-        <div class="scan-hint">Ao entrar na aba Bipagem, o campo já fica pronto para leitura. No celular, toque neste campo e o leitor será acionado.</div>
+        <div class="scan-hint">Leitura rápida: o bip é salvo imediatamente, o campo é liberado na hora e o pedido é identificado em segundo plano. Duplicidades do dia são bloqueadas automaticamente.</div>
       </div>
 
       <section class="bip-kpi-grid">
@@ -3820,8 +3948,8 @@ body[data-active-module="embalagem"] .top-counters,body[data-active-module="emba
       <section class="bip-pro-bottom">
         <div class="bip-pro-card bip-history-card">
           <div class="bip-history-topbar">
-            <h4>Histórico de leituras da sessão</h4>
-            <div class="bip-history-hint">Últimas leituras em ordem decrescente</div>
+            <h4>Romaneio em andamento</h4>
+            <div class="bip-history-hint">Leituras que entrarão no romaneio</div>
           </div>
 
           <div class="table-responsive">
@@ -3869,8 +3997,8 @@ body[data-active-module="embalagem"] .top-counters,body[data-active-module="emba
   <div id="view-atrasados" class="view-section ehf-module-view"><div id="ehf-atrasados-module" class="ehf-module-mount"></div></div>
   <div id="view-embalagem" class="view-section ehf-module-view"><div id="ehf-embalagem-module" class="ehf-module-mount"></div></div>
 
-  <script src="modules/atrasados.js?v=421" defer></script>
-  <script src="modules/embalagem.js?v=421" defer></script>
+  <script src="modules/atrasados.js?v=4247" defer></script>
+  <script src="modules/embalagem.js?v=4247" defer></script>
 
   <script>
 function toggleRow(key){const row=document.getElementById(`details-${key}`);if(row)row.classList.toggle('open')}
@@ -4254,7 +4382,8 @@ document.addEventListener('DOMContentLoaded',()=>setTimeout(ehfApplyHashView,0))
 
     (function() {
       const PROXY_BASE = '/api';
-      const API_BASE = (localStorage.getItem('ehf_worker_api_base') || 'https://atendente-vesco-separacao.2cwhzy.easypanel.host').replace(/\/+$/, '');
+      const API_BASE = (window.EHF_GATEWAY_BASE || 'https://atendente-vesco-separacao.2cwhzy.easypanel.host').replace(/\/+$/, '');
+      const SUMMARY_API_BASE = (window.EHF_SUMMARY_API_BASE || window.EHF_TINY_WORKER_BASE || 'https://atendente-vesco-tiny-worker.2cwhzy.easypanel.host').replace(/\/+$/, '');
       const WEB_APP_URL = API_BASE + '/exec';
 
       function appsScriptJsonp(action, params = {}, timeout = 30000) {
@@ -4678,31 +4807,57 @@ document.addEventListener('DOMContentLoaded',()=>setTimeout(ehfApplyHashView,0))
       }
 
       async function buscarResumo() {
-        const estado = await buscarEstadoOperacional();
-        if (estado?.summary) return {
-          ...estado.summary,
-          mercadoLivrePainel: estado.mercadoLivrePainel || null,
-          channelCountsExact: estado.channelCountsExact || null
-        };
-        if (estado && (estado.perStore || estado.aguardando !== undefined)) return estado;
-        try {
-          const exact = await fetchApiJson('/api/dashboard/contagem-exata', { timeout: 60000 });
-          if (exact?.summary) return exact.summary;
-          if (exact?.perStore) return exact;
-        } catch (error) {
-          console.warn('Contagem exata do Worker indisponível; tentando rota compatível:', error);
+        // Fonte única dos cards e status: tiny-worker.
+        // O gateway/vesco-separacao pode puxar pacotes, mas não pode sobrescrever o resumo canônico.
+        const data = await fetchApiJson(`${SUMMARY_API_BASE}/api/summary`, { noJsonp: true, timeout: 60000 });
+
+        // v4.2.7: o worker pode informar fallbackFrom quando consolida um snapshot vindo do app-state/planilha.
+        // Isso NÃO deve quebrar a tela se o payload já veio completo com total/mapped/perStore.
+        const temResumoUtil = !!(data && data.ok !== false && (data.mapped || data.perStore || data.raw?.perStore));
+        if (data?.fallbackFrom && temResumoUtil) {
+          console.warn('Resumo veio com fallbackFrom, mas será aceito por conter snapshot útil:', data.fallbackFrom);
+          data.__fallbackAceitoSemQuebrarCards = true;
+          return data;
         }
-        return fetchApiJson([
-          `${PROXY_BASE}/summary`,
-          '/summary'
-        ]);
+
+        if (data?.fallbackFrom && !temResumoUtil) {
+          throw new Error('Resumo rejeitado por fallback sem snapshot útil: '+data.fallbackFrom);
+        }
+
+        return data;
+      }
+
+      // v4.2.52: um payload de formasEnvio só é inútil quando nenhuma loja tem
+      // nenhuma contagem. A presença de fallbackFrom sozinha não diz nada sobre
+      // a qualidade do dado — o tiny-worker marca isso em toda consolidação.
+      function ehfFormasEnvioTemDados(data) {
+        const formas = data && data.formasEnvio;
+        if (!formas || typeof formas !== 'object') return false;
+
+        return Object.values(formas).some(loja => {
+          if (!loja || typeof loja !== 'object') return false;
+          return Object.values(loja).some(bucket =>
+            bucket && typeof bucket === 'object' && Object.keys(bucket).length > 0
+          );
+        });
       }
 
       async function buscarFormasEnvio() {
-        return fetchApiJson([
-          `${PROXY_BASE}/formasEnvio`,
-          '/formasEnvio'
-        ]);
+        const data = await fetchApiJson(`${SUMMARY_API_BASE}/api/formasEnvio`, { noJsonp: true, timeout: 60000 });
+
+        // v4.2.52: mesmo tratamento que buscarResumo() já fazia desde a v4.2.7.
+        // O tiny-worker marca fallbackFrom sempre que consolida o snapshot da planilha,
+        // mas o payload continua sendo o canônico. Só descarta se vier realmente vazio.
+        if (data?.fallbackFrom && !ehfFormasEnvioTemDados(data)) {
+          console.warn('FormasEnvio de fallback descartado por vir sem contagens:', data.fallbackFrom);
+          return null;
+        }
+
+        if (data?.fallbackFrom) {
+          console.warn('FormasEnvio veio com fallbackFrom, mas será aceito por conter contagens:', data.fallbackFrom);
+        }
+
+        return data;
       }
 
       async function buscarProdutividade() {
@@ -4718,6 +4873,11 @@ document.addEventListener('DOMContentLoaded',()=>setTimeout(ehfApplyHashView,0))
         if (!stores) return stores;
 
         if (!formasEnvioData || !formasEnvioData.formasEnvio) {
+          return stores;
+        }
+
+        if (formasEnvioData.fallbackFrom && !ehfFormasEnvioTemDados(formasEnvioData)) {
+          console.warn('Ignorando formasEnvio de fallback sem contagens:', formasEnvioData.fallbackFrom);
           return stores;
         }
 
@@ -4738,6 +4898,78 @@ document.addEventListener('DOMContentLoaded',()=>setTimeout(ehfApplyHashView,0))
         });
 
         return stores;
+      }
+
+
+      function ehfNumeroOperacional(v) {
+        const n = Number(v || 0);
+        return Number.isFinite(n) ? n : 0;
+      }
+
+      function ehfNormalizarStoreOperacional(store) {
+        const out = {
+          ...(store || {}),
+          aguardando: ehfNumeroOperacional(store?.aguardando),
+          emSeparacao: ehfNumeroOperacional(store?.emSeparacao ?? store?.em_separacao ?? store?.em_separao),
+          separadas: ehfNumeroOperacional(store?.separadas),
+          embaladas: ehfNumeroOperacional(store?.embaladas)
+        };
+        out.total = ehfNumeroOperacional(store?.total);
+        if (!out.total) out.total = out.aguardando + out.emSeparacao + out.separadas + out.embaladas;
+        return out;
+      }
+
+      function ehfStoresDoSnapshot(data) {
+        const rawStores = data?.raw?.perStore || data?.perStore || data?.dbSnapshot?.perStore || data?.summary?.perStore || {};
+        const out = {};
+
+        Object.entries(rawStores || {}).forEach(([rawKey, store]) => {
+          const key = normalizeStoreKey(rawKey);
+          if (!key) return;
+          out[key] = ehfNormalizarStoreOperacional(store);
+        });
+
+        // Garante todas as contas conectadas na tela. A planilha não é fonte operacional aqui.
+        ACCOUNTS.forEach(acc => {
+          if (!out[acc.key]) {
+            out[acc.key] = ehfNormalizarStoreOperacional({});
+          }
+        });
+
+        return out;
+      }
+
+      function ehfTotaisDeTodasAsContas(stores) {
+        const totais = { aguardando: 0, emSeparacao: 0, separadas: 0, embaladas: 0, total: 0 };
+        const keys = new Set([...ACCOUNTS.map(a => a.key), ...Object.keys(stores || {})]);
+
+        keys.forEach(key => {
+          const store = ehfNormalizarStoreOperacional(stores?.[key] || {});
+          totais.aguardando += store.aguardando;
+          totais.emSeparacao += store.emSeparacao;
+          totais.separadas += store.separadas;
+          totais.embaladas += store.embaladas;
+        });
+
+        totais.total = totais.aguardando + totais.emSeparacao + totais.separadas + totais.embaladas;
+        return totais;
+      }
+
+      function ehfAplicarCardsOperacionaisTodasContas(stores) {
+        const totais = ehfTotaisDeTodasAsContas(stores);
+        setText('total-a-separar', totais.aguardando);
+        setText('total-em-separacao', totais.emSeparacao);
+        setText('total-separadas', totais.separadas);
+        setText('total-embaladas', totais.embaladas);
+
+        totalEmbaladasAcumuladoTiny = Number(totais.embaladas || 0);
+        lastSyncRemaining = Number(totais.aguardando || 0) + Number(totais.emSeparacao || 0) + Number(totais.separadas || 0);
+        setText('remaining-to-pack', lastSyncRemaining);
+
+        const elAuditTiny = document.getElementById('audit-tiny-total');
+        if (elAuditTiny) elAuditTiny.textContent = totalEmbaladasAcumuladoTiny;
+
+        return totais;
       }
 
       async function syncOnce() {
@@ -4774,28 +5006,19 @@ document.addEventListener('DOMContentLoaded',()=>setTimeout(ehfApplyHashView,0))
 
           if (!data) return;
 
-          setText('total-a-separar', data.aguardando ?? 0);
-          setText('total-em-separacao', data.emSeparacao ?? 0);
-          setText('total-separadas', data.separadas ?? 0);
-          setText('total-embaladas', data.embaladas ?? 0);
+          if (!ehfPodeAplicarSnapshot(data)) return;
 
-          totalEmbaladasAcumuladoTiny = Number(data.embaladas || 0);
+          let stores = ehfStoresDoSnapshot(data);
+
+          stores = aplicarFormasEnvioNasLojas(stores, formasEnvioData);
+          stores = ehfMergeStoresNovas(stores);
+          const totaisOperacionais = ehfAplicarCardsOperacionaisTodasContas(stores);
 
           registrarSnapshotProducao(totalEmbaladasAcumuladoTiny);
-
-          const elAuditTiny = document.getElementById('audit-tiny-total');
-
-          if (elAuditTiny) {
-            elAuditTiny.textContent = totalEmbaladasAcumuladoTiny;
-          }
 
           if (typeof window.recalcularDivergenciaBipagem === 'function') {
             window.recalcularDivergenciaBipagem();
           }
-
-          let stores = data.raw?.perStore || data.perStore || {};
-
-          stores = aplicarFormasEnvioNasLojas(stores, formasEnvioData);
 
           ACCOUNTS.forEach(acc => {
             const store = stores[acc.key];
@@ -4809,27 +5032,20 @@ document.addEventListener('DOMContentLoaded',()=>setTimeout(ehfApplyHashView,0))
 
               buildRealTimeDetails(acc.key, store);
             } else {
-              setText(`row-${acc.key}-aguardando`, 0);
-              setText(`row-${acc.key}-separacao`, 0);
-              setText(`row-${acc.key}-separadas`, 0);
-              setText(`row-${acc.key}-embaladas`, 0);
-              setText(`row-${acc.key}-total`, 0);
+              // Não zera a loja quando uma leitura parcial vem sem ela; preserva último snapshot bom.
+              const previous = ehfLastGoodStores[acc.key];
+              if (previous) buildRealTimeDetails(acc.key, previous);
             }
           });
-
-          lastSyncRemaining =
-            Number(data.aguardando || 0) +
-            Number(data.emSeparacao || 0) +
-            Number(data.separadas || 0);
-
-          setText('remaining-to-pack', lastSyncRemaining);
 
           recalcularETALocal();
 
           const lastSync = document.getElementById('last-sync');
 
           if (lastSync) {
-            lastSync.textContent = formatHorarioBrasilia(new Date());
+            const syncMs = ehfSnapshotMs(data);
+            lastSync.textContent = formatHorarioBrasilia(syncMs ? new Date(syncMs) : new Date());
+            lastSync.title = 'Último snapshot operacional aceito';
           }
 
           console.log('Resumo recebido:', data);
@@ -4859,30 +5075,61 @@ document.addEventListener('DOMContentLoaded',()=>setTimeout(ehfApplyHashView,0))
 
       let ehfRealtimeSummaryBusy = false;
       let ehfRealtimeLastTs = '';
+      let ehfLastOperationalSnapshotMs = 0;
+      let ehfLastGoodStores = {};
+
+      function ehfSnapshotMs(data) {
+        const d = data?.ts || data?.time || data?.updatedAt || data?.atualizadoEm;
+        const ms = d ? new Date(d).getTime() : 0;
+        return Number.isFinite(ms) ? ms : 0;
+      }
+
+      function ehfPodeAplicarSnapshot(data) {
+        if (!data || data.ok === false) return false;
+        // v4.2.7: não rejeita automaticamente APP_STATE_SUMMARY_PLANILHA_LATEST quando o payload
+        // veio completo pelo tiny-worker. Só bloqueia snapshot vazio/inútil.
+        if (data.fallbackFrom === 'APP_STATE_SUMMARY_PLANILHA_LATEST' && !(data.mapped || data.perStore || data.raw?.perStore)) return false;
+        const hasNumbers = ['aguardando','emSeparacao','separadas','embaladas'].some(k => data[k] !== undefined && data[k] !== null);
+        const hasStores = !!(data?.raw?.perStore || data?.perStore);
+        if (!hasNumbers && !hasStores) return false;
+        const ms = ehfSnapshotMs(data);
+        if (ms && ehfLastOperationalSnapshotMs && ms + 1000 < ehfLastOperationalSnapshotMs) return false;
+        if (ms) ehfLastOperationalSnapshotMs = Math.max(ehfLastOperationalSnapshotMs, ms);
+        return true;
+      }
+
+      function ehfMergeStoresNovas(stores) {
+        const clean = {};
+        Object.entries(stores || {}).forEach(([k, v]) => {
+          const key = normalizeStoreKey(k);
+          if (!key) return;
+          clean[key] = ehfNormalizarStoreOperacional(v);
+          ehfLastGoodStores[key] = clean[key];
+        });
+        ACCOUNTS.forEach(acc => {
+          if (!clean[acc.key] && ehfLastGoodStores[acc.key]) clean[acc.key] = ehfLastGoodStores[acc.key];
+          if (!clean[acc.key]) clean[acc.key] = ehfNormalizarStoreOperacional({});
+        });
+        return { ...ehfLastGoodStores, ...clean };
+      }
 
       function aplicarResumoTempoReal(data) {
-        if (!data || data.ok === false) return;
+        if (!ehfPodeAplicarSnapshot(data)) return;
         const ts = String(data.ts || '');
         if (ts && ts === ehfRealtimeLastTs) return;
         ehfRealtimeLastTs = ts || ehfRealtimeLastTs;
 
-        setText('total-a-separar', data.aguardando ?? 0);
-        setText('total-em-separacao', data.emSeparacao ?? 0);
-        setText('total-separadas', data.separadas ?? 0);
-        setText('total-embaladas', data.embaladas ?? 0);
-        totalEmbaladasAcumuladoTiny = Number(data.embaladas || 0);
-        lastSyncRemaining = Number(data.aguardando || 0) + Number(data.emSeparacao || 0) + Number(data.separadas || 0);
-        setText('remaining-to-pack', lastSyncRemaining);
-
-        const stores = data.raw?.perStore || data.perStore || {};
+        const stores = ehfMergeStoresNovas(ehfStoresDoSnapshot(data));
+        const totaisOperacionais = ehfAplicarCardsOperacionaisTodasContas(stores);
         ACCOUNTS.forEach(acc => {
           const store = stores[acc.key];
-          setText(`row-${acc.key}-aguardando`, Number(store?.aguardando || 0));
-          setText(`row-${acc.key}-separacao`, Number(store?.emSeparacao || 0));
-          setText(`row-${acc.key}-separadas`, Number(store?.separadas || 0));
-          setText(`row-${acc.key}-embaladas`, Number(store?.embaladas || 0));
-          setText(`row-${acc.key}-total`, Number(store?.total || 0));
-          if (store) buildRealTimeDetails(acc.key, store);
+          if (!store) return;
+          setText(`row-${acc.key}-aguardando`, Number(store.aguardando || 0));
+          setText(`row-${acc.key}-separacao`, Number(store.emSeparacao || 0));
+          setText(`row-${acc.key}-separadas`, Number(store.separadas || 0));
+          setText(`row-${acc.key}-embaladas`, Number(store.embaladas || 0));
+          setText(`row-${acc.key}-total`, Number(store.total || 0));
+          buildRealTimeDetails(acc.key, store);
         });
 
         const lastSync = document.getElementById('last-sync');
@@ -4909,16 +5156,13 @@ document.addEventListener('DOMContentLoaded',()=>setTimeout(ehfApplyHashView,0))
       }
 
       function iniciarCanalResumoTempoReal() {
-        try {
-          const source = new EventSource(`${API_BASE}/api/events/summary`);
-          source.addEventListener('summary', (event) => {
-            try { aplicarResumoTempoReal(JSON.parse(event.data)); } catch (_) { sincronizarResumoTempoReal(); }
-          });
-          source.onerror = () => {};
-          window.ehfSummaryEventSource = source;
-        } catch (_) {}
-        // Fallback para redes/proxies que interrompem SSE.
-        setInterval(sincronizarResumoTempoReal, 3000);
+        // Desabilitado SSE do gateway antigo: ele entregava snapshot parcial e causava oscilação.
+        // A atualização em tempo real agora consulta somente o /api/summary canônico do tiny-worker.
+        if (window.ehfSummaryEventSource) {
+          try { window.ehfSummaryEventSource.close(); } catch (_) {}
+          window.ehfSummaryEventSource = null;
+        }
+        setInterval(sincronizarResumoTempoReal, 30000);
       }
 
 
@@ -5193,14 +5437,180 @@ document.addEventListener('DOMContentLoaded',()=>setTimeout(ehfApplyHashView,0))
       }
 
 
+
+      function ehfNovoCanalAccumulator() {
+        return { FLEX: 0, COLETA: 0, SHOPEE: 0, TIKTOK: 0, AMAZON: 0, MAGALU: 0, TRANSPORTADORA: 0, CORREIOS: 0, RETIRADA: 0, NAO_IDENTIFICADO: 0 };
+      }
+
+      const EHF_FORMA_ENVIO_CANAL_POR_CONTA = {
+        comercio: {
+          '769570519': 'COLETA',
+          '778029845': 'SHOPEE',
+          '780391986': 'FLEX',
+          '849173976': 'AMAZON',
+          '850044775': 'MAGALU',
+          '852535843': 'TRANSPORTADORA',
+          '854284026': 'TIKTOK',
+          '860463094': 'RETIRADA',
+          '747632293': 'CORREIOS',
+          '747632297': 'TRANSPORTADORA',
+          '747632298': 'RETIRADA'
+        },
+        suprimentos: {
+          '772849381': 'COLETA',
+          '778034480': 'SHOPEE',
+          '780375701': 'FLEX',
+          '849173976': 'AMAZON',
+          '850044775': 'MAGALU',
+          '852535843': 'TRANSPORTADORA',
+          '854284026': 'TIKTOK',
+          '860463094': 'RETIRADA',
+          '747632293': 'CORREIOS',
+          '747632297': 'TRANSPORTADORA',
+          '747632298': 'RETIRADA'
+        },
+        distribuidora: {
+          '778095610': 'SHOPEE',
+          '847199235': 'COLETA',
+          '780391986': 'FLEX',
+          '849173976': 'AMAZON',
+          '850044775': 'MAGALU',
+          '852535843': 'TRANSPORTADORA',
+          '854284026': 'TIKTOK',
+          '860463094': 'RETIRADA',
+          '747632293': 'CORREIOS',
+          '747632297': 'TRANSPORTADORA',
+          '747632298': 'RETIRADA'
+        },
+        ekn: {}
+      };
+
+      function ehfCanalPorIdFormaEnvio(rawId, storeKey) {
+        const id = String(rawId ?? '').trim();
+        if (!id) return null;
+        const loja = normalizeStoreKey(storeKey || '');
+        const porConta = EHF_FORMA_ENVIO_CANAL_POR_CONTA[loja] || {};
+        if (porConta[id]) return porConta[id];
+        const geral = {
+          '769570519': 'COLETA',
+          '772849381': 'COLETA',
+          '847199235': 'COLETA',
+          '778029845': 'SHOPEE',
+          '778034480': 'SHOPEE',
+          '778095610': 'SHOPEE',
+          '780391986': 'FLEX',
+          '780375701': 'FLEX',
+          '849173976': 'AMAZON',
+          '850044775': 'MAGALU',
+          '852535843': 'TRANSPORTADORA',
+          '854284026': 'TIKTOK',
+          '860463094': 'RETIRADA',
+          '747632293': 'CORREIOS',
+          '747632297': 'TRANSPORTADORA',
+          '747632298': 'RETIRADA'
+        };
+        return geral[id] || null;
+      }
+
+      function ehfNormalizarCanalNome(rawKey) {
+        const key = String(rawKey || '').toUpperCase();
+        if (!key) return 'NAO_IDENTIFICADO';
+        if (key.includes('FLEX')) return 'FLEX';
+        if (key.includes('COLETA') || key.includes('MERCADO ENVIOS') || key === 'ML' || key.includes('AGENCIA') || key.includes('AGÊNCIA')) return 'COLETA';
+        if (key.includes('SHOPEE') || key.includes('SPX')) return 'SHOPEE';
+        if (key.includes('TIKTOK')) return 'TIKTOK';
+        if (key.includes('AMAZON')) return 'AMAZON';
+        if (key.includes('MAGALU')) return 'MAGALU';
+        if (key.includes('CORREIO')) return 'CORREIOS';
+        if (key.includes('RETIR')) return 'RETIRADA';
+        if (key.includes('TRANSPORT') || key.includes('LOGGI')) return 'TRANSPORTADORA';
+        return 'NAO_IDENTIFICADO';
+      }
+
+      function ehfNormalizarCanalCountsObj(obj, storeKey) {
+        const out = ehfNovoCanalAccumulator();
+        if (!obj || typeof obj !== 'object') return out;
+        Object.entries(obj).forEach(([rawKey, rawValue]) => {
+          const value = Number(rawValue || 0);
+          if (!Number.isFinite(value) || value === 0) return;
+          const canal = ehfCanalPorIdFormaEnvio(rawKey, storeKey) || ehfNormalizarCanalNome(rawKey);
+          out[canal] = Number(out[canal] || 0) + value;
+        });
+        return out;
+      }
+
+      function ehfSomarCanalCounts(dest, src) {
+        Object.keys(dest).forEach(k => { dest[k] += Number(src?.[k] || 0); });
+        return dest;
+      }
+
+      function ehfSomarSituacaoEnvioCounts(store, storeKey) {
+        const out = ehfNovoCanalAccumulator();
+        const situacoes = store?.situacaoEnvioCounts || store?.formasEnvio || null;
+        if (!situacoes || typeof situacoes !== 'object') return out;
+        ['aguardando','emSeparacao','em_separacao','em_separao','separadas','embaladas','checkout'].forEach(statusKey => {
+          const counts = situacoes?.[statusKey];
+          if (counts && typeof counts === 'object') {
+            ehfSomarCanalCounts(out, ehfNormalizarCanalCountsObj(counts, storeKey));
+          }
+        });
+        return out;
+      }
+
+      function ehfSomarSituacaoCanalCounts(store, storeKey) {
+        const out = ehfNovoCanalAccumulator();
+        const situacoes = store?.situacaoCanalCounts || null;
+        if (!situacoes || typeof situacoes !== 'object') return out;
+        ['aguardando','emSeparacao','em_separacao','em_separao','separadas','embaladas','checkout'].forEach(statusKey => {
+          const counts = situacoes?.[statusKey];
+          if (counts && typeof counts === 'object') {
+            ehfSomarCanalCounts(out, ehfNormalizarCanalCountsObj(counts, storeKey));
+          }
+        });
+        return out;
+      }
+
+      function ehfCanalTotalIdentificado(counts) {
+        return Object.entries(counts || {}).reduce((acc, [key, value]) => key === 'NAO_IDENTIFICADO' ? acc : acc + Number(value || 0), 0);
+      }
+
+      function ehfBuildExecutiveChannelCounts(stores, data) {
+        const out = ehfNovoCanalAccumulator();
+
+        // v4.2.8: "Pacotes por canal" segue o Resumo Operacional por Loja.
+        // Não usar channelCountsExact nem MercadoLivrePainel aqui, porque esses dados vêm da leitura direta ML
+        // e podem incluir escopos diferentes da aba Envios de hoje. A base correta é situacaoEnvioCounts,
+        // preferencialmente por idFormaEnvio Tiny; se faltar, usar situacaoCanalCounts e, por último, canalCounts.
+        const origem = stores || data?.raw?.perStore || data?.perStore || data?.dbSnapshot?.perStore || {};
+        Object.entries(origem || {}).forEach(([rawStoreKey, store]) => {
+          const storeKey = normalizeStoreKey(rawStoreKey);
+          const porFormaEnvio = ehfSomarSituacaoEnvioCounts(store, storeKey);
+          if (ehfCanalTotalIdentificado(porFormaEnvio) > 0) {
+            ehfSomarCanalCounts(out, porFormaEnvio);
+            return;
+          }
+
+          const porNomeCanal = ehfSomarSituacaoCanalCounts(store, storeKey);
+          if (ehfCanalTotalIdentificado(porNomeCanal) > 0) {
+            ehfSomarCanalCounts(out, porNomeCanal);
+            return;
+          }
+
+          const counts = store?.strictCanalCounts || store?.canalCounts || {};
+          ehfSomarCanalCounts(out, ehfNormalizarCanalCountsObj(counts, storeKey));
+        });
+        return out;
+      }
+
       function atualizarPainelExecutivo(stores, data, produtividadeData) {
         try {
-          const total = Number(data?.total || 0);
-          const aguardando = Number(data?.aguardando || 0);
-          const emSeparacao = Number(data?.emSeparacao || 0);
-          const separadas = Number(data?.separadas || 0);
-          const embaladas = Number(data?.embaladas || 0);
-          const operacional = Math.max(aguardando + emSeparacao + separadas + embaladas, 1);
+          const totaisPainel = ehfTotaisDeTodasAsContas(stores || ehfStoresDoSnapshot(data));
+          const total = Number(totaisPainel.total || 0);
+          const aguardando = Number(totaisPainel.aguardando || 0);
+          const emSeparacao = Number(totaisPainel.emSeparacao || 0);
+          const separadas = Number(totaisPainel.separadas || 0);
+          const embaladas = Number(totaisPainel.embaladas || 0);
+          const operacional = Math.max(total, 1);
           const concluido = Math.min(100, Math.round((embaladas / operacional) * 100));
 
           setText('gauge-percent', `${concluido}%`);
@@ -5223,8 +5633,7 @@ document.addEventListener('DOMContentLoaded',()=>setTimeout(ehfApplyHashView,0))
           }
           if (riscoNote) riscoNote.textContent = riscoAlto ? 'Monitorando cutoffs' : 'Dentro do previsto';
 
-          const exact = data?.channelCountsExact || ultimoEstadoOperacional?.channelCountsExact || null;
-          const exactCounts = exact?.counts || {};
+          const exactCounts = ehfBuildExecutiveChannelCounts(stores, data);
           const canalAcc = {
             'Flex': Number(exactCounts.FLEX || 0),
             'Agência/Coleta': Number(exactCounts.COLETA || 0),
@@ -5244,8 +5653,8 @@ document.addEventListener('DOMContentLoaded',()=>setTimeout(ehfApplyHashView,0))
               const qtd = Number(canalAcc[nome] || 0);
               const pct = qtd > 0 ? Math.max(4, Math.round((qtd / maxCanal) * 100)) : 0;
               const fonte = nome === 'Flex' || nome === 'Agência/Coleta'
-                ? 'Mercado Livre direto'
-                : (nome === 'Não identificado' ? 'Sem identificador' : 'Separação Tiny');
+                ? 'Resumo por loja / idFormaEnvio Tiny'
+                : (nome === 'Não identificado' ? 'Sem identificador' : 'Resumo por loja / idFormaEnvio Tiny');
               return `<div class="bar-row" title="${fonte}; sem rateio"><span>${nome}</span><div class="bar-track"><i style="width:${pct}%"></i></div><b>${qtd}</b></div>`;
             }).join('');
           }
@@ -5254,7 +5663,7 @@ document.addEventListener('DOMContentLoaded',()=>setTimeout(ehfApplyHashView,0))
           const chartTotal = document.getElementById('chart-total-label');
           if (chartTotal) {
             chartTotal.textContent = `Total identificado: ${totalCanais}`;
-            chartTotal.title = 'Flex e Coleta: Mercado Livre direto. Demais canais: identificador de cada separação Tiny. Nenhum total é dividido.';
+            chartTotal.title = 'Canais calculados pelo Resumo Operacional por Loja usando idFormaEnvio Tiny; Mercado Livre direto não alimenta este gráfico.';
           }
 
           const enterpriseAlert = document.getElementById('enterprise-alert-count');
@@ -5387,7 +5796,7 @@ document.addEventListener('DOMContentLoaded',()=>setTimeout(ehfApplyHashView,0))
         atualizarProducaoRealUltimaHora();
         syncOnceComRelogio('inicial');
         iniciarCanalResumoTempoReal();
-        setTimeout(sincronizarResumoTempoReal, 1200);
+        setTimeout(sincronizarResumoTempoReal, 8000);
 
         setInterval(() => syncOnceComRelogio('auto'), SYNC_INTERVAL_MS);
         // O motor de alarme é iniciado no script principal do Firebase,
@@ -5426,7 +5835,32 @@ document.addEventListener('DOMContentLoaded',()=>setTimeout(ehfApplyHashView,0))
     }
   </script>
 
-  <script type="module" src="modules/painel-runtime.js?v=425"></script>
+  <script src="modules/mobile-site-nav.js?v=4247" defer></script>
+  <script src="modules/mobile-camera-scan.js?v=4247" defer></script>
+  <script src="modules/mobile-romaneio-pc.js?v=4247" defer></script>
+  <script src="modules/mobile-clean-bipagem.js?v=4247" defer></script>
+  
+<script>
+(function(){
+  window.EHF_CAMERA_LOADER_VERSION='4.2.31-DASHMARKETPLACE-GHPAGES';
+  function loadCameraScript(){
+    if(window.EHF_MOBILE_CAMERA_SCAN_VERSION || document.querySelector('script[src*="mobile-camera-scan.js"]')) return;
+    var s=document.createElement('script');
+    s.src='modules/mobile-camera-scan.js?v=4247';
+    s.defer=true;
+    s.onload=function(){ console.log('[EHF] mobile-camera-scan carregado', window.EHF_MOBILE_CAMERA_SCAN_VERSION); };
+    s.onerror=function(){ console.error('[EHF] Falha ao carregar modules/mobile-camera-scan.js?v=4247'); };
+    document.head.appendChild(s);
+  }
+  loadCameraScript();
+  document.addEventListener('DOMContentLoaded', loadCameraScript);
+  setTimeout(loadCameraScript, 800);
+})();
+</script>
+
+  <script type="module" src="modules/painel-runtime.js?v=4251"></script>
+  <script src="modules/painel-guard.js?v=4247" defer></script>
+  <script src="modules/bipagem-resumo-operacional.js?v=4247" defer></script>
 
 
   <script>
